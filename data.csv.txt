@@ -1,0 +1,2 @@
+position,turn,choice
+{"a1": true, ...},false,"c2" 
