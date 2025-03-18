@@ -1,0 +1,26 @@
+html {
+    height: 100%;
+    width: 100%;
+  }
+  
+  .button {
+    width: 100px;
+    height: 50px;
+  }
+  
+  .cell {
+    width: 80px;             /* фиксированный размер ячейки */
+    height: 80px;
+    display: flex;            /* для центрирования содержимого */
+    justify-content: center;  /* горизонтальное центрирование */
+    align-items: center;      /* вертикальное центрирование */
+    cursor: crosshair;    
+    border: 1px black solid;     
+  }
+  
+  .cell img {
+    max-width: 80%;          /* размер картинки чуть меньше ячейки */
+    max-height: 80%;
+    object-fit: contain;     /* сохранение пропорций картинки */
+  } 
+  /* а это всё copilot - сказал, так надо */
