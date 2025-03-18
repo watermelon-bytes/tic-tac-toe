@@ -7,7 +7,7 @@ import tensorflow as tf
 from tensorflow.keras import layers, models, optimizers
 
 # Load your dataset
-# df = pd.read_csv('your_dataset.csv')
+df = pd.read_csv('data.csv.text')
 
 # Example data
 # X = df.drop('target', axis=1)
