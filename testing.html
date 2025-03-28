@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>tic tac toe - Tests</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mocha/10.2.0/mocha.min.css" />
+</head>
+
+<body>
+  <div id="mocha"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mocha/10.2.0/mocha.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chai/4.3.7/chai.min.js"></script>
+  <script src="script.js"></script>
+  <script>
+    mocha.setup('bdd');
+    const { assert } = chai;
+
+    describe('Tic Tac Toe Tests', function () {
+      beforeEach(function () {
+        // Reset the game state before each test
+        position = {
+          '11': null, '12': null, '13': null,
+          '21': null, '22': null, '23': null,
+          '31': null, '32': null, '33': null
+        };
+        turn = true;
+      });
+
+      it('should detect a win for X', function () {
+        position['11'] = true;
+        position['12'] = true;
+        position['13'] = true;
+        assert.isTrue(checkForWinner(), 'X should win');
+      });
+
+      it('should detect a win for O', function () {
+        position['11'] = false;
+        position['12'] = false;
+        position['13'] = false;
+        assert.isFalse(checkForWinner(), 'O should win');
+      });
+
+      it('should detect a draw', function () {
+        position = {
+          '11': true, '12': false, '13': true,
+          '21': false, '22': true, '23': false,
+          '31': false, '32': true, '33': false
+        };
+        assert.isTrue(checkForDraw(position), 'Game should be a draw');
+      });
+
+      it('should allow a valid move', function () {
+        assert.isTrue(checkIsTurnPossible('11'), 'Move should be allowed');
+      });
+
+      it('should not allow a move in an occupied cell', function () {
+        position['11'] = true;
+        assert.isFalse(checkIsTurnPossible('11'), 'Move should not be allowed');
+      });
+    });
+
+    mocha.run();
+  </script>
+</body>
+
+</html>

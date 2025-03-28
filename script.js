@@ -1,27 +1,13 @@
-// на данный момент игра может начинаться ходом нолика, но добавлением бота это будет исправлено (ну я так думаю)
-// нужно будет создать связь между python и js, чтобы бот мог делать ходы  
+import { set_cell_coordinate, all_cells } from './cell.js';
+import { drawField, onload_starting } from './field.js';
+
 
 let player = null; // крестик = true, нолик = false. пока не выбрано, null.
+let turn = true; // аналогично
 
-let turn = true; // ход
-
-function set_cell_coordinate(i) { // здесь мы по цифре i вычисляем координаты ячейки
-    let b = i;
-    while (b - 3 > 0) {b = b - 3;} 
-    let coordinate = []; // каждая клетка будет записываться по формуле "{  столбик клетки (буква) }{  строка клетки (цифра)  }"
-
-    // ↓ здесь считаем, на какой строке клетка
-    if (Math.ceil(i / 3) === 1) {coordinate.push(3);} else if (Math.ceil(i / 3) === 2) {coordinate.push(2);} else {coordinate.push(1);}
-  
-    // ↓ здесь считаем, на каком столбике клетка
-    if (i % 3 === 1) {coordinate += '2';} else if (i % 3 === 2) {coordinate += '3';} else if (i % 3 === 0) {coordinate.push();}
-    return coordinate;
-}
-
-let position = {}; // словарь, в котором будут храниться координаты клеток и их состояние (пустая или нет)
+let position = {}; 
 
 async function start_to_play() {
-    // Сбрасываем значения
     player = null;
     turn = true;  // Всегда начинаем с крестиков
     
@@ -30,8 +16,9 @@ async function start_to_play() {
     });
 
 
-    // Очищаем поле
-    if (document.getElementById('playbutton')) {document.getElementById('playbutton').remove();}
+    if (document.getElementById('playbutton')) {
+      document.getElementById('playbutton').remove();
+    }
   
     for (let i = 0; i < 9; i++) {
       position[set_cell_coordinate(i)] = null;
@@ -44,24 +31,7 @@ async function start_to_play() {
 
     let choice = await setChoice();
     console.log('Choice:', choice); // проверка
-
-
-    for (let i = 1; i < 10; i++) {
-        const cell = document.createElement('div');
-        document.body.appendChild(cell);
-        cell.setAttribute('class', 'cell');
-
-        let row = Math.ceil(i / 3);
-        let column = (i % 3) + 1;
-
-        cell.style.position = 'fixed';
-        
-        cell.style.top = (row + 1) * 80 + 'px';
-        cell.style.left = (column + 1) * 80 + 'px';
-
-        cell.setAttribute('id', set_cell_coordinate(i));
-        
-    }
+    drawField();
     cellEventListener();
 }
 
@@ -97,26 +67,25 @@ function setChoice() {
   });
 }
 
-function checkIsTurnPossible(this_position) { // проверяем, можно ли сделать ход в эту клетку
-  if (position[this_position] === null && !document.getElementById(this_position).hasChildNodes()) {
-    return true;
-  }
-  return false;
+var checkIsTurnPossible = function(this_position) { // проверяем, можно ли сделать ход в эту клетку
+  return (position[this_position] === null && !document.getElementById(this_position).hasChildNodes());
 }
 
+let development_mode = false
 
 function fillCell(cell_position, current_turn) { 
     let side = document.createElement('img');
     let the_cell = document.getElementById(cell_position);
     
     if (current_turn === true) {
-        side.setAttribute('src', '');
-        side.setAttribute('alt', 'X');
+        side.setAttribute('src', 'crestick.png');
+        side.alt = 'X';
     } else {
-        side.setAttribute('src', '');
+        side.setAttribute('src', 'zero.png');
         side.alt = '0';
     }
-    write_turn_down(cell_position); // если всё нормально, записываем позицию + ход в log, чтобы обучать потом на партиях бота
+    
+    if (development_mode) {write_turn_down(cell_position);} // если всё нормально, записываем позицию + ход в log, чтобы обучать потом на партиях бота
     position[cell_position] = current_turn;  // Записываем ход
     the_cell.appendChild(side);
     
@@ -124,6 +93,7 @@ function fillCell(cell_position, current_turn) {
     if (winner !== null || checkForDraw(position)) {
         end_game();
     }
+
     turn = !turn;
     console.log("Check for win:", winner);
     console.log('Position:', position); // проверка
@@ -133,11 +103,6 @@ function handler(object) {
     if (object.hasChildNodes() === false) { // проверка на дочерние узлы 
       fillCell(object.id, turn); // здесь мы через cell.id будем получать координаты клетки
     }
-}
-
-function all_cells() {
-  const all_cells = document.querySelectorAll('.cell');
-  return all_cells;
 }
 
 function cellEventListener() {
@@ -159,50 +124,58 @@ hasChildNodes() возвращает true, если есть дочерние у
  */
 
 function checkForWinner() {
+
   function checkForWin(game_position, player_flag) {
+
     // Object.keys(game_position) => Получаем массив всех ключей объекта game_position
-    /* .filter(key => game_position[key] === true) => фильтруем этот массив, 
-    оставляя только те ключи, у которых значение в объекте game_position равно true/false */
-    cells_with_flag_id = Object.keys(game_position).filter(key => game_position[key] === player_flag); // все клетки с ноликами
+    cells_with_flag_id = Object.keys(game_position)
+    cells_with_flag_id = cells_with_flag_id.filter(key => game_position[key] === player_flag); // все клетки с player_flag
+    
+    /* .filter(key => game_position[key] === player_flag) => фильтруем этот массив, 
+    оставляя только те ключи, у которых значение в объекте game_position равно flag */
 
-    if (cells_with_flag_id.length < 3) {return null;}
 
-    for (let letter of ['a', 'b', 'c']) {
-      if (cells_with_flag_id.filter(cell_code => cell_code.startsWith(letter)).length === 3) {
-        return true;
-      };
+    let nums = ['1', '2', '3'];
+    let letters = ['a', 'b', 'c'];
+
+    var necessary_filter = (index, elem) => {
+      return cells_with_flag_id.filter(cell_code => cell_code[index] == elem).length === 3;
     }
-    for (let number of ['1', '2', '3']) {
-      if (cells_with_flag_id.filter(cell_code => cell_code.endsWith(number)).length === 3) {
-        return true;
-      };
-    }
-    const diagonals = [['a1', 'b2', 'c3'], ['a3', 'b2', 'c1']];
-    for (let diagonal of diagonals) {
-      if (cells_with_flag_id.filter(cell_code => diagonal.includes(cell_code)).length === 3) {
+    
+    for (let first of letters) {
+      if (necessary_filter(0, first)) {
         return true;
       }
     }
+
+    for (let second of nums) {
+      if (necessary_filter(1, second)) {
+        return true;
+      }
+    }
+
+    /*
+    for (let element of cells_with_flag_id) {
+      if 
+    } */
   }
-  
-  if (checkForWin(position, true)) {
-    console.info('X Win!');
-    return true;
-  } else if (checkForWin(position, false)) {
-    console.info('O Win!');
-    return false;
-  }
-  return null;
+  let out;
+  checkForWin(position, true) ? out = 'X wins!' : checkForWin(position, false) ? out = 'O wins!' : out = null;
+  return out;
 }
 
-function checkForDraw(this_position) {
+
+
+var checkForDraw = function(this_position) {
     const values = Object.values(this_position);
     if (values.every(cell => cell !== null) && checkForWinner() === null) {
         console.info('Draw!');
         return true;
     }
     return false;
-}
+  }
+
+
 
 async function end_game() {
 
@@ -227,4 +200,3 @@ function write_turn_down(move) {
   document.getElementById('turns_log').appendChild(text);
   text.innerHTML += JSON.stringify(position)+ ", " + move;
 }
-
