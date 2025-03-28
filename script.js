@@ -1,5 +1,4 @@
-import { set_cell_coordinate, all_cells } from './cell.js';
-import { drawField, onload_starting } from './field.js';
+import { set_cell_coordinate, all_cells, drawField, onload_starting  } from './utils.js';
 
 
 let player = null; // крестик = true, нолик = false. пока не выбрано, null.
