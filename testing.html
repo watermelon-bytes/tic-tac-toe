@@ -21,43 +21,43 @@
       beforeEach(function () {
         // Reset the game state before each test
         position = {
-          '11': null, '12': null, '13': null,
-          '21': null, '22': null, '23': null,
-          '31': null, '32': null, '33': null
+          'a1': null, 'a2': null, 'a3': null,
+          'b1': null, 'b2': null, 'b3': null,
+          'c1': null, 'c2': null, 'c3': null
         };
         turn = true;
       });
 
       it('should detect a win for X', function () {
-        position['11'] = true;
-        position['12'] = true;
-        position['13'] = true;
+        position['a1'] = true;
+        position['a2'] = true;
+        position['a3'] = true;
         assert.isTrue(checkForWinner(), 'X should win');
       });
 
       it('should detect a win for O', function () {
-        position['11'] = false;
-        position['12'] = false;
-        position['13'] = false;
+        position['a1'] = false;
+        position['a2'] = false;
+        position['a3'] = false;
         assert.isFalse(checkForWinner(), 'O should win');
       });
 
       it('should detect a draw', function () {
         position = {
-          '11': true, '12': false, '13': true,
-          '21': false, '22': true, '23': false,
-          '31': false, '32': true, '33': false
+          'a1': true, 'a2': false, 'a3': true,
+          'b1': false, 'b2': true, 'b3': false,
+          'c1': false, 'c2': true, 'c3': false
         };
         assert.isTrue(checkForDraw(position), 'Game should be a draw');
       });
 
       it('should allow a valid move', function () {
-        assert.isTrue(checkIsTurnPossible('11'), 'Move should be allowed');
+        assert.isTrue(checkIsTurnPossible('a1'), 'Move should be allowed');
       });
 
       it('should not allow a move in an occupied cell', function () {
         position['11'] = true;
-        assert.isFalse(checkIsTurnPossible('11'), 'Move should not be allowed');
+        assert.isFalse(checkIsTurnPossible('a1'), 'Move should not be allowed');
       });
     });
 

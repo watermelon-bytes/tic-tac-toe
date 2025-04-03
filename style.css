@@ -3,23 +3,99 @@ html {
     width: 100%;
   }
   
-  .button {
-    width: 100px;
-    height: 50px;
-  }
-  
   .cell {
     width: 80px;             /* фиксированный размер ячейки */
     height: 80px;
     display: flex;            /* для центрирования содержимого */
     justify-content: center;  /* горизонтальное центрирование */
     align-items: center;      /* вертикальное центрирование */
-    cursor: crosshair;    
-    border: 1px black solid;     
+    cursor: pointer;    
+    border: 1px solid #000; /* Граница ячеек */
+    background-color: white;
+    aspect-ratio: 1;
+    border-radius: 5px;
+    box-sizing: border-box; /* Учитываем границы в размерах */
   }
   
   .cell img {
     max-width: 80%;          /* размер картинки чуть меньше ячейки */
     max-height: 80%;
     object-fit: contain;     /* сохранение пропорций картинки */
+    width: 80%;
+    height: 80%;
   } 
+
+/* с CSS помогал верный слуга GPT */
+@import url('https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&display=swap');
+
+body {
+    background: #fff; /* Тёмный фон */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    gap: 20px;
+}
+
+button {
+    font-family: "Century Gothic", CenturyGothic, AppleGothic, sans-serif; 
+    display: flex;
+    font-size: 24px;
+    font-weight: bold;
+    padding: 12px 24px;
+    border: 3px solid #aaa;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 1);
+}
+
+/* Основная (активная) кнопка */
+.btn-primary {
+    background: linear-gradient(145deg, #5a0303, #8b0000);
+    color: #fff;
+    border-color: #fdc60f;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(145deg, #8b0000, #c71515);
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.8);
+}
+
+/* Второстепенная (пассивная) кнопка */
+.btn-secondary {
+    background: linear-gradient(145deg, #222, #444);
+    color: #d4af37; /* Золотой текст */
+    border-color: #777; /* Серый цвет границы */
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); /* Лёгкая тень текста */
+    transition: all 0.3s ease; /* Плавный переход */
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(145deg, #444, #666); /* Более светлый фон */
+    color: #fff; /* Белый текст при наведении */
+    border-color: #aaa; /* Светлая граница */
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.5); /* Золотистое свечение */
+    transform: scale(1.05); /* Лёгкое увеличение кнопки */
+}
+
+.game-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  width: min(80vw, 600px); /* Адаптивная ширина */
+  aspect-ratio: 1; /* Поддерживаем квадратную форму */
+  margin: 0 auto; /* Центрирование контейнера */
+  background-color: #333; /* Цвет фона игрового поля */
+  border: 2px solid #000; /* Граница игрового поля */
+  padding: 5px;
+  border-radius: 10px;
+}
+
+/* Медиа-запрос для мобильных устройств */
+@media (max-width: 768px) {
+  .game-container {
+    width: 95vw;
+    margin: 1rem auto;
+  }
+}
