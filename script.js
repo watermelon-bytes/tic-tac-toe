@@ -320,3 +320,11 @@ var write_turn_down = function(move) {
   document.getElementById('turns_log').appendChild(text);
   text.innerHTML += JSON.stringify(position) + ", " + move;
 }
+
+var makeRequest = () => {
+  let form = new XMLHttpRequest();
+  let url = '';
+  form.open('GET', url);
+  form.responseType = 'json';
+  
+}

@@ -1,25 +1,20 @@
 import requests
 
-
-def accept_position():
-    return # эта функция будет получать и возвращать необходимые входные данные
-
-
-data = accept_position()
-
-def send_position(answer):
-    requests.put # пока без вызова
-
 def winning_turn(position):
     letters, numbers = {'a': 0, 'b': 0, 'c': 0}, {'1':0, '2':0, '3':0}
     for elem in position:
         for let, num in letters, numbers:
             if let in elem:
                 letters[let] += 1
-            if num in elem:
+            if num in elem: 
                 numbers[num] += 1
     if any(elem[value] == 2 for elem, value in position.items()):
         pass
+
+class Server:
+    def handle(request):
+        if winning_turn(request['position']):
+            return 
 
 
 
