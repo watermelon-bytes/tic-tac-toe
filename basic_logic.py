@@ -15,23 +15,23 @@ def winning_turn(position, player):
             line = [r + c for r in rows]
             if sum(position[cell] == player for cell in line) == 3 and any(position[cell] is None for cell in line):
                 return next(cell for cell in line if position[cell] is None)
-
-        diagonals = [
-            ['a1', 'b2', 'c3', 'd4'],
-            ['a4', 'b3', 'c2', 'd1']
-        ]
-        for diag in diagonals:
-            if sum(position[cell] == player for cell in diag) == 3 and any(position[cell] is None for cell in diag):
-                return next(cell for cell in diag if position[cell] is None)
+        
+        all = "".join([elem for elem in position.keys() if position[elem] == player])
+        count = 0
+        for r, c in zip(rows, cols):
+            if r in all and c in all:
+                count += 1
+        if count == 3:
+            return next(cell for cell in position.keys() if position[cell] is None)
     
-    checking_player = player  # текущий игрок
+    checking_player = player  
     # Проверяем, если текущий игрок может выиграть в следующем ходе
     if check_line(checking_player):
-        return check_line(checking_player)  # возвращаем выигрышный ход
+        return check_line(checking_player)   # возвращаем выигрышный ход
     
-    checking_player = not player  # переключаем игрока
+    checking_player = not player  # переключаем игрока, смотрим, может ли он выиграть
     if check_line(checking_player): # теперь ищем блокирующий ход
-        return check_line(checking_player) 
+        return check_line(checking_player)
     
     return False # если нет выигрышного или блокирующего хода
 

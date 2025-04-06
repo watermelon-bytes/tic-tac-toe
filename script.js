@@ -13,32 +13,26 @@ let onload_starting = () => {
   document.body.appendChild(playButton);
 }
 
-window.load = onload_starting();
+window.onload = () => {
+  onload_starting();
+}
 
-function setCellsCoordinates(i) { // здесь мы по цифре i вычисляем координаты ячейки
-  let coordinate = '';
-  switch (Math.ceil(i / 3)) {
-    case 1:
-      coordinate += 'c';
-      break;
-    case 2:
-      coordinate += 'b';
-      break;
-    case 3: 
-      coordinate += 'a';
-      break;
+function setCellsCoordinates(i, n) {
+  const letters = ['a', 'b', 'c', 'd'].reverse(); // Порядок изменён для правильного соответствия
+  const numbers = [1, 2, 3, 4];
+  
+  // Вычисляем номер строки (от 0 до 3)
+  const row = Math.floor((i - 1) / n); // -1 потому что i начинается с 1
+  // Вычисляем номер столбца (от 0 до 3)
+  const col = (i - 1) % n;
+  
+  // Проверяем, что индексы в пределах массива
+  if (row >= letters.length || col >= numbers.length) {
+    throw new Error('Invalid index: ' + i);
   }
-  switch (i % 3) {
-    case 1:
-      coordinate += '3';
-      break;
-    case 2:
-      coordinate += '2';
-      break;
-    case 0:
-      coordinate += '1';
-      break;
-  }
+  
+  const coordinate = letters[row] + numbers[col];
+  
   return coordinate;
 }
 
@@ -54,6 +48,7 @@ class Sprite {
 let gothic = new Sprite('gothic');
 let classical = new Sprite('classical');
 
+let square; // размер поля
 function drawField(sideOfField) {
 
   // Создаем контейнер для игрового поля
@@ -69,7 +64,7 @@ function drawField(sideOfField) {
   for (let i = 1; i <= sideOfField ** 2; i++) {
     const cell = document.createElement('div');
     cell.setAttribute('class', 'cell');
-    cell.setAttribute('id', setCellsCoordinates(i));
+    cell.setAttribute('id', setCellsCoordinates(i, 4));
 
     const row = Math.ceil(i / sideOfField);
     const column = (i - 1) % sideOfField + 1;
@@ -82,39 +77,34 @@ function drawField(sideOfField) {
 
     gameContainer.appendChild(cell);
   }
+  
+  square = sideOfField;
   gameContainer.style.position = 'relative';
   gameContainer.style.width = `${cellSize * sideOfField}px`;
   gameContainer.style.height = `${cellSize * sideOfField}px`;
   gameContainer.style.margin = '0 auto'; // Центрируем контейнер
 }
 
-let tryToRemove = function(button_id) {
-  if (document.getElementById(button_id)) {
-    document.getElementById(button_id).remove();
-  }
-}
 
-let all_cells = () => document.querySelectorAll('.cell'); // функция querySelectorAll()ё возвращает статический список всех элементов с указанным в аргументе аттрибутами в контейнере,указанном перед точкой. 
+let all_cells = () => document.querySelectorAll('.cell'); // функция querySelectorAll() возвращает статический список всех элементов с указанным в аргументе аттрибутами в контейнере,указанном перед точкой. 
 let checkIsTurnPossible = (this_position) => (position[this_position] === null && !document.getElementById(this_position).hasChildNodes());
 // проверяем, можно ли сделать ход в эту клетку
-
 
 let player = null; // крестик = true, нолик = false. пока не выбрано, null.
 let turn = true; // аналогично
 let position = {};
+square = 4; // размер поля по умолчанию
 
 async function startToPlay() {
   player = null;
   turn = true;  // Всегда начинаем с крестиков
-  tryToRemove('playbutton');
+  position = {};
 
-  all_cells().forEach(cell => {
-    cell.remove()
-  });
-  
+  document.getElementById('playbutton')?.remove(); // Удаляем кнопку "Play"
+  document.getElementById('game-field')?.remove(); // Удаляем игровое поле, если оно есть
 
-  for (let i = 1; i < 10; i++) {
-    position[setCellsCoordinates(i)] = null;
+  for (let i = 1; i <= square ** 2; i++) {
+    position[setCellsCoordinates(i, square)] = null;
   }
 
   console.log('Waiting for choice...');
@@ -124,15 +114,16 @@ async function startToPlay() {
 
   let choice = await setChoice();
   console.log('Choice:', choice); // проверка
-  drawField(3);
+  drawField(Math.sqrt(Object.keys(position).length)); // Рисуем поле в зависимости от количества клеток в словаре
   cellEventListener();
 }
 
 let setChoice = function() {
+  
   let createChoiceButton = function(id, text) {
     const button = document.createElement('button');
     button.setAttribute('id', id);
-    stylization(id, 'sec');
+    
     button.textContent = text;
     button.addEventListener('click', () => {
       document.getElementById('container').remove();
@@ -146,15 +137,16 @@ let setChoice = function() {
     document.body.appendChild(container);
 
     const promptText = 'Play as ';
-    container.appendChild(createChoiceButton('x_btn', promptText + 'X')).addEventListener('click', () => {
-      player = true;
-      resolve(true);
-    });
 
-    container.appendChild(createChoiceButton('o_btn', promptText + 'O')).addEventListener('click', () => {
-      player = false;
-      resolve(false);
-    });
+    ['x', 'o'].forEach((elem) => {
+      let button = createChoiceButton(`${elem}_btn`, promptText + elem.toUpperCase());
+      container.appendChild(button);
+      stylization(button.id, 'sec');
+      button.addEventListener('click', () => {
+            player = elem === 'x' ? true : false;
+            resolve(player);
+        });
+      });
   });
 }
 
@@ -162,7 +154,6 @@ let development_mode = false
 
 function fillCell(cell_position, current_turn) {
   let side = document.createElement('img');
-  let the_cell = document.getElementById(cell_position);
 
   if (current_turn) { 
     side.setAttribute('src', gothic.x_src);
@@ -177,7 +168,7 @@ function fillCell(cell_position, current_turn) {
   }
 
   position[cell_position] = current_turn;
-  the_cell.appendChild(side);
+  document.getElementById(cell_position)?.appendChild(side);
 
   let winner = checkForWinner();
   if (winner !== null || checkForDraw(position)) {
@@ -190,23 +181,28 @@ function fillCell(cell_position, current_turn) {
   console.log("Ход игрока:", turn ? "X" : "O");
   console.log('Position:', position);
 }
-
-
-/*function handler(object) {
-  if (object.hasChildNodes() === false) { // проверка на дочерние узлы 
-    fillCell(object.id, turn); // здесь мы через cell.id будем получать координаты клетки
-  }
-}*/
-
+/*
 function cellEventListener() {
-  all_cells().forEach(cell => { // здесь cell - это название переменной, которая будет принимать значение каждой клетки
-
+  all_cells().forEach(cell => { 
+    
     cell._clickHandler = () => {
       if (checkIsTurnPossible(cell.id)) {
         fillCell(cell.id, turn);
       }
     }
     cell.addEventListener('mouseup', cell._clickHandler);
+    
+  });
+}*/
+
+function cellEventListener() {
+  all_cells().forEach(cell => { 
+    cell._clickHandler = function() {
+      if (checkIsTurnPossible(this.id)) {
+        fillCell(this.id, turn);
+      }
+    };
+    cell.addEventListener('mouseup', cell._clickHandler); // Просто добавляем, без условия
   });
 }
 
@@ -217,8 +213,8 @@ function checkForWinner() {
     const playerCells = Object.keys(game_position).filter(
       key => game_position[key] === player_flag
     );
-    const letters = ['a', 'b', 'c'];
-    const numbers = [1, 2, 3];
+    const letters = ['a', 'b', 'c', 'd'];
+    const numbers = [1, 2, 3, 4];
 
     for (let letter of letters) {
       if (numbers.every(number => playerCells.includes(letter + number))) {
@@ -230,17 +226,15 @@ function checkForWinner() {
         return true;
       }
     }
-
-    const diagonals = [['a1', 'b2', 'c3'], ['a3', 'b2', 'c1']];
-    return diagonals.some( diagonal => diagonal.every(cell => playerCells.includes(cell)) ) ? true : false;
+    let stringOfCellIndeces = playerCells.join("");
+    return (
+      letters.every(char => stringOfCellIndeces.includes(char)) && 
+      numbers.every(char => stringOfCellIndeces.includes(String(char)))
+    );
+      
   }
 
-  if (checkForWin(position, true)) {
-    return 'X wins!';
-  } else if (checkForWin(position, false)) {
-    return 'O wins!';
-  }
-  return null;
+  return checkForWin(position, true) ?  'X wins!' : (checkForWin(position, false) ? 'O wins!' : null);
 }
 
 var checkForDraw = (this_position) => {
@@ -253,23 +247,12 @@ var checkForDraw = (this_position) => {
 }
 
 function stylization(elem_id, type) {
-  let btn_type;
-  switch (type.slice(0, 3)) {
-    case 'pri':
-      btn_type = 'btn-primary';
-      break;
-    case 'sec':
-      btn_type = 'btn-secondary';
-      break;
-    default:
-      btn_type = 'btn-primary';
-  }
-
-  try {
-    elem = document.getElementById(elem_id);
+  const btn_type = type === 'sec' ? 'btn-secondary' : 'btn-primary';
+  const elem = document.getElementById(elem_id);
+  if (elem) {
     elem.setAttribute('class', btn_type);
-  } catch (e) {
-    console.error(e);
+  } else {
+    console.error(`Element with ID ${elem_id} not found`);
   }
 }
 
@@ -286,8 +269,8 @@ async function endCurrentGame(winner) {
 
   let _playAgainButton_ = document.createElement('button');
   _playAgainButton_.innerHTML = 'Play again?';
-  _playAgainButton_.setAttribute('id', 'play_again_btn');
-  stylization('play_again_btn', 'prim');
+  _playAgainButton_.id = 'play_again_btn';
+  
   
   let gameField = document.getElementById('game-field');
   let gameFieldRect = gameField.getBoundingClientRect();
@@ -296,10 +279,11 @@ async function endCurrentGame(winner) {
   _playAgainButton_.style.top = `${gameFieldRect.bottom + 10}px`;
   _playAgainButton_.style.left = `${gameFieldRect.left}px`;
   document.body.appendChild(_playAgainButton_);
+  stylization('play_again_btn', 'prim');
 
   _playAgainButton_.addEventListener('click', () => {
-    tryToRemove('play_again_btn');
-    tryToRemove('game-field');
+    document.getElementById(_playAgainButton_.id).remove();
+    document.getElementById('game-field')?.remove();
     startToPlay().catch(console.error);
   });
   
@@ -322,9 +306,32 @@ var write_turn_down = function(move) {
 }
 
 var makeRequest = () => {
+  let data_about_our_game = {
+    position: position,
+    player: !player,
+  };
+
   let form = new XMLHttpRequest();
   let url = '';
-  form.open('GET', url);
+  form.open('POST', url);
+  form.setRequestHeader('Content-Type', 'application/json');
+
   form.responseType = 'json';
+
+  form.onload = () => {
+    document.body.innerText = '';
+    console.info('Response:', form.response);
+    console.log('Status:', form.status);
+    return form.status === 200 ? form.response : new Error('Request failed');
+  };
+
+  form.onerror = () => {
+    console.error('Request failed');
+  };
+
+  form.upload = () => {
+    document.body.innerText = 'Computer is thinking...';
+  };
   
+  form.send(JSON.stringify(data_about_our_game));
 }
