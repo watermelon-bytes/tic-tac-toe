@@ -15,3 +15,10 @@ def accept_position(request):
 def send_position(answer):
     our_answer = accept_position(answer)
     pass # пока без вызова
+
+@app.route("/json", methods=["POST"])
+def handle_json():
+    return jsonify(Server.handle(request.json))
+
+if __name__ == "__main__":
+    app.run(host="127.0.0.1", port=5000)

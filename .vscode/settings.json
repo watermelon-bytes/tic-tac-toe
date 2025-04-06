@@ -1,3 +1,4 @@
 {
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "python.defaultInterpreterPath": "C:/Users/Лена/Documents/__folder/tic-tac-toe/.venv/Scripts/python.exe"
 }

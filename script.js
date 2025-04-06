@@ -92,6 +92,7 @@ let checkIsTurnPossible = (this_position) => (position[this_position] === null &
 
 let player = null; // крестик = true, нолик = false. пока не выбрано, null.
 let turn = true; // аналогично
+
 let position = {};
 square = 4; // размер поля по умолчанию
 
@@ -151,15 +152,16 @@ let setChoice = function() {
 }
 
 let development_mode = false
+let default_style = classical; // по умолчанию классический стиль
 
-function fillCell(cell_position, current_turn) {
+function fillCell(cell_position, current_turn, chosen_style=default_style) {
   let side = document.createElement('img');
 
-  if (current_turn) { 
-    side.setAttribute('src', gothic.x_src);
+  if (current_turn) {
+    side.setAttribute('src', chosen_style.x_src);
     side.alt = 'X';
   } else {
-    side.setAttribute('src', gothic.o_src);
+    side.setAttribute('src', chosen_style.o_src);
     side.alt = '0';
   }
 
@@ -181,28 +183,16 @@ function fillCell(cell_position, current_turn) {
   console.log("Ход игрока:", turn ? "X" : "O");
   console.log('Position:', position);
 }
-/*
-function cellEventListener() {
-  all_cells().forEach(cell => { 
-    
-    cell._clickHandler = () => {
-      if (checkIsTurnPossible(cell.id)) {
-        fillCell(cell.id, turn);
-      }
-    }
-    cell.addEventListener('mouseup', cell._clickHandler);
-    
-  });
-}*/
 
 function cellEventListener() {
-  all_cells().forEach(cell => { 
+  all_cells().forEach(cell => {
     cell._clickHandler = function() {
-      if (checkIsTurnPossible(this.id)) {
+      if (checkIsTurnPossible(this.id) && turn === player) {
         fillCell(this.id, turn);
       }
     };
     cell.addEventListener('mouseup', cell._clickHandler); // Просто добавляем, без условия
+    cell.addEventListener('load', cell._clickHandler); // Просто добавляем, без условия
   });
 }
 
@@ -307,12 +297,13 @@ var write_turn_down = function(move) {
 
 var makeRequest = () => {
   let data_about_our_game = {
-    position: position,
-    player: !player,
+    "position": position,
+    "ml_player": !player,
   };
 
   let form = new XMLHttpRequest();
-  let url = '';
+
+  let url = 'http://localhost:5000/';
   form.open('POST', url);
   form.setRequestHeader('Content-Type', 'application/json');
 
@@ -329,9 +320,21 @@ var makeRequest = () => {
     console.error('Request failed');
   };
 
-  form.upload = () => {
+  form.onploadstart = () => {
     document.body.innerText = 'Computer is thinking...';
   };
-  
-  form.send(JSON.stringify(data_about_our_game));
+  try {
+    form.send(JSON.stringify(data_about_our_game));
+  } catch (e) {
+    console.error('Error:', e);
+  }
+}
+
+var computer_turn = function() {
+  let cell = makeRequest();
+  try {
+    fillCell(cell, !turn);
+  } catch (e) {
+    console.error('Error:', e);
+  }
 }
