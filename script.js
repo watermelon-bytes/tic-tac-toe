@@ -1,4 +1,6 @@
-let onload_starting = () => {
+//import React from 'react'
+
+window.onload = () => {
   const playButton = document.createElement('button');
   playButton.setAttribute('id', 'playbutton');
   playButton.textContent = 'Play';
@@ -11,10 +13,6 @@ let onload_starting = () => {
     startToPlay().catch(console.error);
   })
   document.body.appendChild(playButton);
-}
-
-window.onload = () => {
-  onload_starting();
 }
 
 function setCellsCoordinates(i, n) {
@@ -109,9 +107,7 @@ async function startToPlay() {
   }
 
   console.log('Waiting for choice...');
-  if (development_mode) {
-    create_turns_log();
-  }
+  development_mode ? createTurnsLog() : null;
 
   let choice = await setChoice();
   console.log('Choice:', choice); // проверка
@@ -151,7 +147,7 @@ let setChoice = function() {
   });
 }
 
-let development_mode = false
+let development_mode = true;
 let default_style = classical; // по умолчанию классический стиль
 
 function fillCell(cell_position, current_turn, chosen_style=default_style) {
@@ -166,7 +162,7 @@ function fillCell(cell_position, current_turn, chosen_style=default_style) {
   }
 
   if (document.getElementById('turns_log')) {
-    write_turn_down(cell_position);
+    writeTurnDown(cell_position);
   }
 
   position[cell_position] = current_turn;
@@ -178,8 +174,8 @@ function fillCell(cell_position, current_turn, chosen_style=default_style) {
     return;
   }
 
-  // Меняем ход только если игра не закончена
   turn = !turn;
+  player = !player;
   console.log("Ход игрока:", turn ? "X" : "O");
   console.log('Position:', position);
 }
@@ -191,8 +187,9 @@ function cellEventListener() {
         fillCell(this.id, turn);
       }
     };
-    cell.addEventListener('mouseup', cell._clickHandler); // Просто добавляем, без условия
-    cell.addEventListener('load', cell._clickHandler); // Просто добавляем, без условия
+    cell.addEventListener('mouseup', cell._clickHandler); 
+    cell.addEventListener('load', cell._clickHandler); 
+    cell.addEventListener('contextmenu', event => event.preventDefault());
   });
 }
 
@@ -280,19 +277,29 @@ async function endCurrentGame(winner) {
   console.info('Game over!');
 }
 
-var create_turns_log = function() {
+var createTurnsLog = function() {
   let container = document.createElement('div');
   container.setAttribute('id', 'turns_log');
   container.setAttribute('position', 'absolute');
-  container.left = '50%';
-  container.top = '5%';
   document.body.appendChild(container);
 }
 
-var write_turn_down = function(move) {
+var writeTurnDown = function(move) {
   let text = document.createElement('p');
   document.getElementById('turns_log').appendChild(text);
-  text.innerHTML += JSON.stringify(position) + ", " + move;
+
+  text.innerHTML += JSON.stringify(position) + ", " + (turn ? '1' : '-1') + ", " + `\"${move}\"`;
+  copyToClipboard(text.innerText);
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text)
+    .then(() => {
+      console.log('Скопировано в буфер:', text);
+    })
+    .catch(err => {
+      console.error('Ошибка копирования:', err);
+    });
 }
 
 var makeRequest = () => {
@@ -303,7 +310,7 @@ var makeRequest = () => {
 
   let form = new XMLHttpRequest();
 
-  let url = 'http://localhost:5000/';
+  let url = 'http://127.0.0.1:5000/move';
   form.open('POST', url);
   form.setRequestHeader('Content-Type', 'application/json');
 
@@ -313,7 +320,11 @@ var makeRequest = () => {
     document.body.innerText = '';
     console.info('Response:', form.response);
     console.log('Status:', form.status);
-    return form.status === 200 ? form.response : new Error('Request failed');
+    if (form.status === 200 && form.response?.cell) {
+      fillCell(form.response.cell, !player);
+    } else {
+      console.error('Invalid response or request failed');
+    }
   };
 
   form.onerror = () => {
