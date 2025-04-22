@@ -184,7 +184,7 @@ function cellEventListener() {
   all_cells().forEach(cell => {
     cell._clickHandler = function() {
       if (checkIsTurnPossible(this.id) && turn === player) {
-        fillCell(this.id, turn);
+        fillCell(this.id, turn, gothic);
       }
     };
     cell.addEventListener('mouseup', cell._clickHandler); 
@@ -302,10 +302,10 @@ function copyToClipboard(text) {
     });
 }
 
-var makeRequest = () => {
+var makeRequest = async function() {
   let data_about_our_game = {
-    "position": position,
-    "ml_player": !player,
+    position: position,
+    turn: !player,
   };
 
   let form = new XMLHttpRequest();
@@ -316,17 +316,6 @@ var makeRequest = () => {
 
   form.responseType = 'json';
 
-  form.onload = () => {
-    document.body.innerText = '';
-    console.info('Response:', form.response);
-    console.log('Status:', form.status);
-    if (form.status === 200 && form.response?.cell) {
-      fillCell(form.response.cell, !player);
-    } else {
-      console.error('Invalid response or request failed');
-    }
-  };
-
   form.onerror = () => {
     console.error('Request failed');
   };
@@ -334,15 +323,27 @@ var makeRequest = () => {
   form.onploadstart = () => {
     document.body.innerText = 'Computer is thinking...';
   };
+
   try {
     form.send(JSON.stringify(data_about_our_game));
   } catch (e) {
     console.error('Error:', e);
   }
+
+  form.onload = () => {
+    document.body.innerText = '';
+    console.info('Response:', form.response);
+    console.log('Status:', form.status);
+    if (form.status === 200 && form.response?.cell) {
+      return form.response.cell;
+    } else {
+      console.error('Invalid response or request failed');
+    }
+  };
 }
 
-var computer_turn = function() {
-  let cell = makeRequest();
+var computer_turn = async function() {
+  let cell = await makeRequest();
   try {
     fillCell(cell, !turn);
   } catch (e) {

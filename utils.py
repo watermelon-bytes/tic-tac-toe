@@ -1,24 +1,28 @@
-def convertPositionForML(data: dict) -> dict:
-    if not isinstance(data, dict):
-        raise ValueError("Input must be a dictionary!")
+from json import loads as toDict
 
-    alphabet = ['a', 'b', 'c', 'd']
-    new_data = {}
+def convertPositionForML(position: str, turn: int, choice: str) -> tuple:
+    position = toDict(position.replace("'", '"'))
+    letters = ['a', 'b', 'c', 'd']
+    numbers = ['1', '2', '3', '4']
+    features = [[]]
 
-    for key, value in data.items():
-        # key is like 'a1', 'b2', etc.
-        row = key[0]
-        if row not in alphabet:
-            raise ValueError(f"Unexpected key format: {key}")
-        new_key = key  # или: f"{alphabet[alphabet.index(row)]}{key[1]}"
-        
-        if value is True:
-            new_val = 1
-        elif value is None:
-            new_val = 0
-        elif value is False:
-            new_val = -1
+    #true, false, null = True, False, None
+    for letter in letters:
+        for number in numbers:
+            key = letter + number
+            value = position.get(key)
+            if value == True:
+                features[0].append(1)
+            elif value == False:
+                features[0].append(-1)
+            else:
+                features[0].append(0)
+    
+    features.append(turn)
 
-        new_data[new_key] = new_val
+    row = letters.index(choice[0])
+    col = int(choice[1]) - 1
+    label = row * 4 + col
 
-    return new_data
+    return features, label
+

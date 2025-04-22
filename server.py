@@ -7,22 +7,15 @@ app.config['JSON_SORT_KEYS'] = False
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['CORS_SUPPORTS_CREDENTIALS'] = True
 
-
-@app.route("/", methods=["GET"])
-def hello():
-    return "Hello, World!"
-
-
-@app.route("/move", methods=["POST"])
-def handle_json():
-    data = request.get_json()
-    if not ('position' in data and 'turn' in data and 'choice' in data):
+def handle_json(jsonobj):
+    data = jsonobj.get_json()
+    if not ('position' in data and 'turn' in data):
         return jsonify({"error": "Invalid request: Missing required keys"}), 400
     return jsonify(handle(data))
 
-
+"""
 def accept_position(request):
-    if request['position']:
+    if request['position'] and request['player']:
         result = handle(request['position'])
         if result:
             return {'answer': result}
@@ -31,9 +24,11 @@ def accept_position(request):
     else:
         raise ValueError("Invalid request: 'position' key is missing or empty.")
 
-def send_position(answer):
-    our_answer = accept_position(answer)
-    pass # пока без вызова
+"""
+
+@app.route("/", methods=["POST"])
+def send_position():
+    return handle_json(request)
 
 
 if __name__ == "__main__":

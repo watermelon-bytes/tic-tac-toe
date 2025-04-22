@@ -1,29 +1,38 @@
-import numpy as np
+from numpy import array
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.neural_network import LogisticRegression
-from sklearn.metrics import accuracy_score
+from sklearn.tree import DecisionTreeClassifier
+#from sklearn.metrics import accuracy_score
 from utils import convertPositionForML
+import joblib
 
-content = pd.read_csv('data.txt')
-content = content.dropna(axis=0)
-df = pd.DataFrame(content)
-df['position'] = df['position'].apply(convertPositionForML)
+# Load the data
+DF = pd.read_csv('data.txt').dropna(axis=0)
+print(DF.describe())
 
-print(content['position'].to_string())
-
-content.head()
-
-if 'position' not in content or 'turn' not in content or 'choice' not in content:
+"""
+if not ('position' in content and 'turn' in content and 'choice' in content):
     raise KeyError("Missing required keys in content: 'position', 'turn', or 'choice'")
+"""
+pos, turn, answer = DF['position'], DF['turn'], DF['choice']
 
-pos, turn, answer = content['position'], content['turn'], content['choice']
+X, y = list(), list()
 
-X = np.array(list(zip(pos, turn)))
-y = answer
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.02, random_state=42)
 print('Done!')
 
-model = LogisticRegression()
+for _, row in DF.iterrows():
+    features, label = convertPositionForML(row["position"], row["turn"], row["choice"])
+    X.append(features)
+    y.append(label)
+
+
+X_train, X_test, y_train, y_test = train_test_split(array(X), array(y), test_size=0.2, random_state=42)
+
+model = DecisionTreeClassifier(random_state=42)
 model.fit(X_train, y_train)
+
+# Save the model
+try:
+    joblib.dump(model, 'model/agent.pkl')
+except FileNotFoundError:
+    pass
