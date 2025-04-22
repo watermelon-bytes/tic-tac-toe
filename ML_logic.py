@@ -10,10 +10,6 @@ import joblib
 DF = pd.read_csv('data.txt').dropna(axis=0)
 print(DF.describe())
 
-"""
-if not ('position' in content and 'turn' in content and 'choice' in content):
-    raise KeyError("Missing required keys in content: 'position', 'turn', or 'choice'")
-"""
 pos, turn, answer = DF['position'], DF['turn'], DF['choice']
 
 X, y = list(), list()

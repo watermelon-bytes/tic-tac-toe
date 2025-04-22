@@ -16,12 +16,12 @@ window.onload = () => {
 }
 
 function setCellsCoordinates(i, n) {
-  const letters = ['a', 'b', 'c', 'd'].reverse(); // Порядок изменён для правильного соответствия
+  const letters = ['a', 'b', 'c', 'd'].reverse();
   const numbers = [1, 2, 3, 4];
   
-  // Вычисляем номер строки (от 0 до 3)
-  const row = Math.floor((i - 1) / n); // -1 потому что i начинается с 1
-  // Вычисляем номер столбца (от 0 до 3)
+  // Вычисляем номер строки 
+  const row = Math.floor((i - 1) / n); // i-1, 'cause i starts from 1
+  // Вычисляем номер столбца 
   const col = (i - 1) % n;
   
   // Проверяем, что индексы в пределах массива
@@ -46,7 +46,7 @@ class Sprite {
 let gothic = new Sprite('gothic');
 let classical = new Sprite('classical');
 
-let square; // размер поля
+let square; 
 function drawField(sideOfField) {
 
   // Создаем контейнер для игрового поля
@@ -96,11 +96,11 @@ square = 4; // размер поля по умолчанию
 
 async function startToPlay() {
   player = null;
-  turn = true;  // Всегда начинаем с крестиков
+  turn = true;
   position = {};
 
   document.getElementById('playbutton')?.remove(); // Удаляем кнопку "Play"
-  document.getElementById('game-field')?.remove(); // Удаляем игровое поле, если оно есть
+  document.getElementById('game-field')?.remove(); 
 
   for (let i = 1; i <= square ** 2; i++) {
     position[setCellsCoordinates(i, square)] = null;
@@ -140,7 +140,7 @@ let setChoice = function() {
       container.appendChild(button);
       stylization(button.id, 'sec');
       button.addEventListener('click', () => {
-            player = elem === 'x' ? true : false;
+            player = (elem === 'x' ? true : false);
             resolve(player);
         });
       });
@@ -148,7 +148,7 @@ let setChoice = function() {
 }
 
 let development_mode = true;
-let default_style = classical; // по умолчанию классический стиль
+let default_style = classical;
 
 function fillCell(cell_position, current_turn, chosen_style=default_style) {
   let side = document.createElement('img');
@@ -196,7 +196,7 @@ function cellEventListener() {
 
 function checkForWinner() {
   function checkForWin(game_position, player_flag) {
-    // Получаем все клетки текущего игрока
+    // Получаем все клетки игрока
     const playerCells = Object.keys(game_position).filter(
       key => game_position[key] === player_flag
     );
