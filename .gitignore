@@ -1,8 +1,7 @@
  
 # Модели машинного обучения
-*.pkl
+model/
 agent.pkl
-models/
 
 # Данные (если не хочешь трекать)
 data.txt
@@ -18,3 +17,9 @@ __pycache__/
 
 .vscode/
 settings.json
+
+.directory
+.gitignore
+__pycache__/utils.cpython-310.pyc
+__pycache__/utils.cpython-310.pyc
+__pycache__/ML_logic.cpython-310.pyc
