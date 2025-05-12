@@ -1,11 +1,11 @@
-import ML_logic
+#import ML_logic
 import json
 import math
+import random
 
-
-def directToMLLogic(request):
+#def directToMLLogic(request):
     # Прямой вызов функции winning_turn для обработки запроса
-    return ML_logic.make_move(request['position'], request['player'])
+    #return ML_logic.make_move(request['position'], request['player'])
 
 def winning_turn(position: dict, player: bool) -> any:
     rows = ['a', 'b', 'c', 'd']
@@ -49,8 +49,7 @@ def winning_turn(position: dict, player: bool) -> any:
 def handle(request: dict) -> dict:
     temp = winning_turn(request['position'], request['player'])
     if temp:
-        return {'answer': winning_turn(request['position'])}
+        return {'turn': winning_turn(request['position'])}
     else:
-        return directToMLLogic(request['position'])
-        
-
+        return {'turn': random.choice()}
+        #return directToMLLogic(request['position'])

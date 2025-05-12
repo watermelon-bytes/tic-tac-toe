@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width">
   <title>tic tac toe</title>
-  <link href="style.css" rel="stylesheet" type="text/css">
-  <link rel="apple-touch-icon" sizes="180x180" href=> <!--- ссылки пока нету   --->
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet" type="text/css">
+  <link rel="apple-touch-icon" sizes="180x180" href=>
   <link rel="icon" type="image/png" sizes="32x32" href=>
   <link rel="icon" type="image/png" sizes="16x16" href=>
 </head>
 
 <body>
-  <script src="script.js"></script>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
   <noscript>Sorry, your browser does not support JavaScript!</noscript>
 </body>
 </html>

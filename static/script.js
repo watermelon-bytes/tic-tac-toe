@@ -37,7 +37,7 @@ function setCellsCoordinates(i, n) {
 class Sprite {
   constructor(image_style) {
     this.title = image_style;
-    this.images_src = 'game_sprites/' + image_style + '/';
+    this.images_src = 'static/game_sprites/' + image_style + '/';
     this.x_src = this.images_src + 'crestick.png';
     this.o_src = this.images_src + 'zero.png';
   }
@@ -92,9 +92,20 @@ let player = null; // крестик = true, нолик = false. пока не �
 let turn = true; // аналогично
 
 let position = {};
+var session_id;
 square = 4; // размер поля по умолчанию
 
 async function startToPlay() {
+  session_id = fetch('/new_session', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json;charset=utf-8'
+    },
+    body: JSON.stringify({'first_move': 'client'})
+  });
+  
+  session_id ? null : null;
+
   player = null;
   turn = true;
   position = {};
@@ -175,19 +186,31 @@ function fillCell(cell_position, current_turn, chosen_style=default_style) {
   }
 
   turn = !turn;
-  player = !player;
+  
   console.log("Ход игрока:", turn ? "X" : "O");
   console.log('Position:', position);
+
+
 }
 
-function cellEventListener() {
+function cellEventListener(session, turn) {
   all_cells().forEach(cell => {
     cell._clickHandler = function() {
-      if (checkIsTurnPossible(this.id) && turn === player) {
-        fillCell(this.id, turn, gothic);
-      }
+      var request = fetch('/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json;charset=utf-8' },
+        body: JSON.stringify({
+          session_id: session,
+          turn: turn
+        })
+      });
+      if (request.ok) {
+        return request.json();
+      } else throw new Error("Request failed.");
     };
-    cell.addEventListener('mouseup', cell._clickHandler); 
+
+
+    cell.addEventListener('mouseup', cell._clickHandler);
     cell.addEventListener('load', cell._clickHandler); 
     cell.addEventListener('contextmenu', event => event.preventDefault());
   });
@@ -208,11 +231,13 @@ function checkForWinner() {
         return true;
       }
     }
+
     for (let number of numbers) {
       if (letters.every(letter => playerCells.includes(letter + number))) {
         return true;
       }
     }
+
     let stringOfCellIndeces = playerCells.join("");
     return (
       letters.every(char => stringOfCellIndeces.includes(char)) && 
@@ -289,9 +314,9 @@ var writeTurnDown = function(move) {
   document.getElementById('turns_log').appendChild(text);
 
   text.innerHTML += JSON.stringify(position) + ", " + (turn ? '1' : '-1') + ", " + `\"${move}\"`;
-  copyToClipboard(text.innerText);
+  //copyToClipboard(text.innerText);
 }
-
+/*
 function copyToClipboard(text) {
   navigator.clipboard.writeText(text)
     .then(() => {
@@ -300,17 +325,17 @@ function copyToClipboard(text) {
     .catch(err => {
       console.error('Ошибка копирования:', err);
     });
-}
+}*/
 
-var makeRequest = async function() {
+var makeRequest = async function(turnMade) {
   let data_about_our_game = {
-    position: position,
-    turn: !player,
+    session_id: String,
+    turn: turnMade
   };
 
   let form = new XMLHttpRequest();
 
-  let url = 'http://127.0.0.1:5000/move';
+  let url = '/game';
   form.open('POST', url);
   form.setRequestHeader('Content-Type', 'application/json');
 
@@ -348,5 +373,14 @@ var computer_turn = async function() {
     fillCell(cell, !turn);
   } catch (e) {
     console.error('Error:', e);
+  }
+}
+
+var start_session = async function() {
+  let session_request = await fetch('/new_session');
+  if (session_request.ok) {
+    return session_request.json();
+  } else {
+    return {"error": "Cannot now create a session. Try later."};
   }
 }

@@ -7,7 +7,7 @@ from utils import convertPositionForML
 import joblib
 
 # Load the data
-DF = pd.read_csv('data.txt').dropna(axis=0)
+DF = pd.read_csv('model/data.txt').dropna(axis=0)
 print(DF.describe())
 
 pos, turn, answer = DF['position'], DF['turn'], DF['choice']
