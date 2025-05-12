@@ -196,16 +196,16 @@ function fillCell(cell_position, current_turn, chosen_style=default_style) {
 function cellEventListener(session, turn) {
   all_cells().forEach(cell => {
     cell._clickHandler = function() {
-      var request = fetch('/game', {
+      let response = fetch('/game', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json;charset=utf-8' },
-        body: JSON.stringify({
-          session_id: session,
-          turn: turn
-        })
+        headers: {
+          'Content-Type': 'application/json;charset=utf-8'
+        }, 
+        body: JSON.stringify({session_id: session_id, move: turn})
       });
-      if (request.ok) {
-        return request.json();
+
+      if (response.ok) {
+        return response.json();
       } else throw new Error("Request failed.");
     };
 

@@ -45,7 +45,6 @@ def winning_turn(position: dict, player: bool) -> any:
     
     return False # если нет выигрышного или блокирующего хода
 
-
 def handle(request: dict) -> dict:
     temp = winning_turn(request['position'], request['player'])
     if temp:

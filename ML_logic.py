@@ -31,4 +31,4 @@ model.fit(X_train, y_train)
 try:
     joblib.dump(model, 'model/agent.pkl')
 except FileNotFoundError:
-    pass
+    print("File 'model/agent.pkl' found. Please check the path.")
