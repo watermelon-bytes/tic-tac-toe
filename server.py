@@ -1,7 +1,8 @@
 from basic_logic import handle
 from uuid import uuid4
 from time import time
-from flask import *
+import flask
+from flask import Flask, render_template, request, jsonify
 from utils import is_valid_move, sessions
 
 app = Flask(__name__, template_folder='templates')
@@ -10,7 +11,7 @@ app.config['JSON_SORT_KEYS'] = False
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['CORS_SUPPORTS_CREDENTIALS'] = True
 
-sessions: dict = []
+sessions = dict()
 
 def handle_json(jsonobj: dict):
     data = jsonobj.get_json()
@@ -22,14 +23,10 @@ def handle_json(jsonobj: dict):
 def index():
     return render_template('index.html')
 
-
 # universe greeting
 @app.route('/universe', methods=['GET'])
 async def greet():
-    return {
-        "message": "goodbye, universe!",
-        "sender": "the last human."
-    }
+    return "Hello, Universe!"
 
 @app.route("/game", methods=["POST"])
 async def send_position() -> dict:
@@ -39,6 +36,7 @@ async def send_position() -> dict:
     if session_id:
         if is_valid_move(session_id, data["move"]):
             sessions[session_id][move] = sessions[session_id]["client_side"]
+            sessions[session_id]["last_updated_at"] = time()
             return handle(sessions[session_id]["board"], sessions[session_id]["first_move"])
         else:
             return {"error": "Your JSON is not valid. Try to create new session."}
@@ -65,6 +63,10 @@ def initialize_session() -> str:
     except Exception as e:
         app.logger.info(f"Произошла ошибка: {e}")
         return "Internal Server Error", 500
+
+@app.route('/get_sessions')
+def get_sessions():
+    return sessions
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=3000, debug=True)
