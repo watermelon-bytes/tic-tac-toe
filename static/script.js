@@ -12,7 +12,8 @@ window.onload = () => {
     playButton.addEventListener('click', () => {
         startToPlay().
         catch(console.error);
-    }) document.body.appendChild(playButton);
+    }) 
+    document.body.appendChild(playButton);
 }
 
 function setCellsCoordinates(i, n) {
@@ -56,7 +57,7 @@ function drawField(sideOfField) {
     const cellSize = Math.min(window.innerWidth, window.innerHeight) / (sideOfField + 1) / 1.5;
 
     // Создаем ячейки внутри контейнера
-    for (let i = 1; i <= sideOfField * *2; i++) {
+    for (let i = 1; i <= sideOfField ** 2; i++) {
         const cell = document.createElement('div');
         cell.setAttribute('class', 'cell');
         cell.setAttribute('id', setCellsCoordinates(i, 4));
@@ -102,8 +103,7 @@ let position = {};
 var session_id;
 square = 4; // размер поля по умолчанию
 
-async
-function startToPlay() {
+async function startToPlay() {
     let answer = fetch('/new_session', {
         method: 'POST',
         headers: {
@@ -114,14 +114,15 @@ function startToPlay() {
         })
     });
 
-    session_id = answer['session_id'] player = null;
+    session_id = answer['session_id'];
+    player = null;
     turn = true;
     position = {};
 
-    document.getElementById('playbutton') ? .remove(); // Удаляем кнопку "Play"
-    document.getElementById('game-field') ? .remove();
+    document.getElementById('playbutton')?.remove(); // Удаляем кнопку "Play"
+    document.getElementById('game-field')?.remove();
 
-    for (let i = 1; i <= square * *2; i++) {
+    for (let i = 1; i <= square ** 2; i++) {
         position[setCellsCoordinates(i, square)] = null;
     }
 
@@ -188,7 +189,7 @@ function fillCell(cell_position, current_turn, chosen_style = default_style) {
     }
 
     position[cell_position] = current_turn;
-    document.getElementById(cell_position) ? .appendChild(side);
+    document.getElementById(cell_position)?.appendChild(side);
 
     let winner = checkForWinner();
     if (winner !== null || checkForDraw(position)) {
@@ -223,12 +224,13 @@ function getComputerMove(session) {
 function cellEventListener(turn) {
     all_cells().forEach(cell => {
         cell._clickHandler = function() {
-            let response =
-
-            cell.addEventListener('mouseup', cell._clickHandler);
-            cell.addEventListener('load', cell._clickHandler);
-            cell.addEventListener('contextmenu', event => event.preventDefault());
-        });
+            let response;
+        }
+        cell.addEventListener('mouseup', cell._clickHandler);
+        cell.addEventListener('load', cell._clickHandler);
+        cell.addEventListener('contextmenu', event => event.preventDefault());
+        
+      });
     }
 
     function checkForWinner() {
@@ -273,10 +275,7 @@ function cellEventListener(turn) {
         if (elem) {
             elem.setAttribute('class', btn_type);
         } else {
-            console.error(`Element with ID $ {
-                elem_id
-            }
-            not found`);
+            console.error(`Element with ID ${elem_id} not found`);
         }
     }
 
@@ -285,11 +284,7 @@ function cellEventListener(turn) {
             cell.removeEventListener('mouseup', cell._clickHandler);
         });
 
-        if (winner !== null) {
-            console.info(winner);
-        } else {
-            console.info('Draw!');
-        }
+        winner !== null ? console.info(winner) : console.info('Draw!');
 
         let _playAgainButton_ = document.createElement('button');
         _playAgainButton_.innerHTML = 'Play again?';
@@ -306,7 +301,7 @@ function cellEventListener(turn) {
 
         _playAgainButton_.addEventListener('click', () =>  {
             document.getElementById(_playAgainButton_.id).remove();
-            document.getElementById('game-field') ? .remove();
+            document.getElementById('game-field')?.remove();
             startToPlay().
             catch(console.error);
         });
@@ -396,4 +391,4 @@ var start_session = async function() {
   } else {
     return {"error ": "Cannot now create a session.Try later."};
   }
-}"
+}
