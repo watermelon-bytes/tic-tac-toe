@@ -27,7 +27,7 @@ def winning_turn(position: dict, player: bool) -> any:
         all_ = "".join([elem for elem in position.keys() if position[elem] == player])
         count = 0
         for r, c in zip(rows, cols):
-            if r in all and c in all_:
+            if r in all_ and c in all_:
                 count += 1
         if count == required_cells and any(position[cell] is None for cell in position.keys()):
             return next((cell for cell in position.keys() if position[cell] is None), None)
@@ -45,10 +45,54 @@ def winning_turn(position: dict, player: bool) -> any:
     
     return False # если нет выигрышного или блокирующего хода
 
-def handle(request: dict) -> dict:
-    temp = winning_turn(request['position'], request['player'])
+def handle(position: dict, side: str) -> dict:
+    temp = winning_turn(position, side)
     if temp:
-        return {'turn': winning_turn(request['position'])}
+        return {'move': winning_turn(position)}
     else:
-        return {'turn': random.choice()}
+        return {'move': random.choice(valid_moves(position))}
         #return directToMLLogic(request['position'])
+
+
+def valid_moves(position: dict) -> list:
+    rows = ['a', 'b', 'c', 'd']
+    cols = ['1', '2', '3', '4']
+    valid_moves = []
+    for r in rows:
+        for c in cols:
+            if position[r + c] == 'null':
+                valid_moves.append(r + c)
+    return valid_moves
+
+
+def check_for_winner():
+    def check_for_win(game_position, player_flag):
+        player_cells = [key for key, value in game_position.items() if value == player_flag]
+        letters = ['a', 'b', 'c', 'd']
+        numbers = [1, 2, 3, 4]
+
+        for letter in letters:
+            if all(letter + str(number) in player_cells for number in numbers):
+                return True
+
+        for number in numbers:
+            if all(letter + str(number) in player_cells for letter in letters):
+                return True
+
+        string_of_cell_indeces = "".join(player_cells)
+        return all(char in string_of_cell_indeces for char in letters) and all(str(char) in string_of_cell_indeces for char in numbers)
+
+    result = check_for_win(position, 'true')
+    if result:
+        return 'X wins!'
+    elif check_for_win(position, 'false'):
+        return 'O wins!'
+    else:
+        return 'null'
+
+def check_for_draw(this_position):
+    values = list(this_position.values())
+    if all(cell != 'null' for cell in values) and check_for_winner() == 'null':
+        print('Draw!')
+        return True
+    return False
