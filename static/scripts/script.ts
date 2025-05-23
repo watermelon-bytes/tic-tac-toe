@@ -1,3 +1,7 @@
+// короче, надо всё это переделывать
+// классы не доделаны, много лишних ненужных функций
+// в общем,ужас
+/*
 window.onload = () => {
   const playButton = document.createElement('button');
   playButton.setAttribute('id', 'playbutton');
@@ -8,10 +12,10 @@ window.onload = () => {
   playButton.style.left = '50%';
   playButton.style.transform = 'translate(-50%, -50%)';
   playButton.addEventListener('click', () => {
-      startToPlay().
-      catch(console.error);
+      startToPlay().catch(console.error);
     }
   );
+
   document.body.appendChild(playButton);
 }
 
@@ -42,6 +46,141 @@ class Sprite {
       this.x_src = this.images_src + 'crestick.png';
       this.o_src = this.images_src + 'zero.png';
   }
+}
+
+class Game {
+  session_id: string;
+  client_side: string;
+  position: {[key: string]: boolean | null};
+  sideOfField: number;
+  current_turn: boolean = true;
+
+  constructor(client_side: boolean) {
+    this.client_side = client_side === true ? 'x' : 'o';
+    this.position = {};
+  }
+
+  async start() {
+    let session_request = await fetch('/new_session', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json;charset=utf-8'
+        },
+        body: JSON.stringify({ first_move: this.client_side === 'x' ? 'clent' : 'server', client_side: this.client_side})
+    });
+  
+    if (session_request.ok) {
+        var result = await session_request.json();
+        return result.session_id;
+      } else {
+        throw new Error("Cannot create a session now. Try later.")
+    }
+  };
+
+  isValidMove(move: string): boolean {
+    return this.position[move] === null;
+  }
+
+
+
+  turn(target: Cell): void {
+    if (this.isValidMove(target.id)) {
+      target.drawCell(this);
+      this.current_turn = !this.current_turn;
+    }
+  }
+}
+
+
+class Cell {
+  id: string;
+  queue_number: number;
+  value: boolean | null;
+  elem: Element;
+  classname: Sprite;
+
+  constructor(sequence_number: number) {
+    this.id = setCellsCoordinates(sequence_number, 4);
+    this.value = null;
+    this.elem = document.createElement('div');
+    this.elem.setAttribute('id', this.id);
+    this.elem.setAttribute('class', this.classname.title);
+  }
+
+  clickHandler(game: Game) {
+    if (checkIsTurnPossible(this.id)) {
+      fetch('/game', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json;charset=utf-8'
+          },
+          body: JSON.stringify({
+              session_id: game.session_id,
+              move: this.id,
+          })
+        }
+      ).then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        
+        var data = response.json();
+        game.fillCell(this.id, player); // Делаем ход
+        fillCell(data['move'], !player); // Делаем ход
+        
+
+      }, rejected => {
+        console.error('Error:', rejected);
+      })
+    }
+  }
+
+  setNecessaryEventListener(game: Game): void {
+    this.elem.addEventListener("onclick", this.clickHandler);
+  }
+
+  drawCell(game: Game) {
+    
+    let cellElement: Cell;
+    const cellSize = Math.min(window.innerWidth, window.innerHeight) / (game.sideOfField + 1) / 1.5;
+
+    for (let i: number = 0; i > 9; i++) {
+      cellElement = new Cell(i);
+      document.appendChild(cellElement.elem);
+    }
+     
+  }
+  
+  fillCell(game: Game, chosen_style: Sprite = classical): void {
+    let side = document.createElement('img');
+  
+    if (game.current_turn === true) {
+        side.setAttribute('src', chosen_style.x_src);
+        side.alt = 'X';
+    } else {
+        side.setAttribute('src', chosen_style.o_src);
+        side.alt = '0';
+    }
+  
+    if (document.getElementById('turns_log')) {
+        writeTurnDown(this.id);
+    }
+  
+    game.position[this.id] = game.current_turn;
+    document.getElementById(this.id)?.appendChild(this.elem);
+  
+    let winner = checkForWinner();
+    if (winner !== null || checkForDraw(position)) {
+        endCurrentGame(winner);
+        return;
+    }
+  
+    game.current_turn = !game.current_turn;
+
+    console.log("Ход игрока:", game.current_turn ? "X": "O");
+    console.log('Position:', position);
+  }
+
 }
 
 let gothic = new Sprite('gothic');
@@ -83,7 +222,6 @@ function drawField(sideOfField: number): void {
 
 let all_cells = () => document.querySelectorAll('.cell');
 
-let checkIsTurnPossible = (cell_id: string): boolean => !(document.getElementById(cell_id)?.hasChildNodes());
 
 var player: boolean;
 
@@ -146,35 +284,7 @@ let setChoice = function(): any {
 
 let development_mode = false;
 
-function fillCell(cell_position: string, current_turn: boolean, chosen_style: Sprite = classical): void {
-  let side = document.createElement('img');
 
-  if (current_turn === true) {
-      side.setAttribute('src', chosen_style.x_src);
-      side.alt = 'X';
-  } else {
-      side.setAttribute('src', chosen_style.o_src);
-      side.alt = '0';
-  }
-
-  if (document.getElementById('turns_log')) {
-      writeTurnDown(cell_position);
-  }
-
-  position[cell_position] = current_turn;
-  document.getElementById(cell_position)?.appendChild(side);
-
-  let winner = checkForWinner();
-  if (winner !== null || checkForDraw(position)) {
-      endCurrentGame(winner);
-      return;
-  }
-
-  turn = !turn;
-
-  console.log("Ход игрока:", turn ? "X": "O");
-  console.log('Position:', position);
-}
 
 function cellEventListener(): void {
   all_cells().forEach(cell => {
@@ -215,7 +325,7 @@ function checkForWinner(): any {
   function checkForWin(game_position: {[key: string]: any}, player_flag: boolean): boolean {
       const playerCells = Object.keys(game_position).filter(key => game_position[key] === player_flag);
       const letters = ['a', 'b', 'c', 'd'];
-      const numbers = [1, 2, 3, 4];
+      const numbers = ["1", "2", "3", "4"];
 
       for (let letter of letters) {
           if (numbers.every(number => playerCells.includes(letter + number))) {
@@ -338,4 +448,35 @@ var start_session = async function(client_piece: string) {
     } else {
       return { "error": "Cannot create a session now. Try later." };
   }
-};
+};*/
+
+
+// main.ts (или index.ts)
+// ... (GameTheme, Cell, Game классы в отдельных файлах, если используешь модули)
+
+// Глобальная функция для установки координат (может быть в utils.ts)
+
+import Game from "./game";
+import {gothic, classical} from "./utils";
+
+// Инициализация игры при загрузке страницы
+let gameInstance: Game;
+
+window.onload = () => {
+  // Создаем экземпляр игры (можно передать тему и размер поля)
+  gameInstance = new Game(4, classical);
+
+  const playButton = document.createElement('button');
+  playButton.setAttribute('id', 'playbutton');
+  playButton.textContent = 'Play';
+  playButton.setAttribute('class', 'btn-primary');
+  playButton.style.position = 'absolute';
+  playButton.style.top = '50%';
+  playButton.style.left = '50%';
+  playButton.style.transform = 'translate(-50%, -50%)';
+  playButton.addEventListener('click', () => {
+      gameInstance.startGame().catch(console.error); // Запускаем игру через метод объекта Game
+  });
+
+  document.body.appendChild(playButton);
+}
