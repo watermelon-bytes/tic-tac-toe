@@ -2,6 +2,7 @@
 import json
 import math
 import random
+from utils import every_in_list
 
 #def directToMLLogic(request):
     # Прямой вызов функции winning_turn для обработки запроса
@@ -65,32 +66,39 @@ def valid_moves(position: dict) -> list:
     return valid_moves
 
 
-def check_for_winner():
-    def check_for_win(game_position, player_flag):
-        player_cells = [key for key, value in game_position.items() if value == player_flag]
-        letters = ['a', 'b', 'c', 'd']
-        numbers = [1, 2, 3, 4]
 
-        for letter in letters:
-            if all(letter + str(number) in player_cells for number in numbers):
-                return True
+def check_for_winner(board: dict) -> 'X' | 'O' | 'pending' | 'draw':
+    rows = ['a', 'b', 'c', 'd']
+    cols = ['1', '2', '3', '4']
 
-        for number in numbers:
-            if all(letter + str(number) in player_cells for letter in letters):
-                return True
+    if check_for_draw(board):
+        return 'draw'
 
-        string_of_cell_indeces = "".join(player_cells)
-        return all(char in string_of_cell_indeces for char in letters) and all(str(char) in string_of_cell_indeces for char in numbers)
+    for r in rows:
+        if all(board[r + c] == 'X' for c in cols):
+            return 'X'
+        if all(board[r + c] == 'O' for c in cols):
+            return 'O'
 
-    result = check_for_win(position, 'true')
-    if result:
-        return 'X wins!'
-    elif check_for_win(position, 'false'):
-        return 'O wins!'
-    else:
-        return 'null'
+    for c in cols:
+        if all(board[r + c] == 'X' for r in rows):
+            return 'X'
+        if all(board[r + c] == 'O' for r in rows):
+            return 'O'
 
-def check_for_draw(this_position):
+    if all(board[rows[i] + cols[i]] == 'X' for i in range(4)):
+        return 'X'
+    if all(board[rows[i] + cols[i]] == 'O' for i in range(4)):
+        return 'O'
+
+    if all(board[rows[i] + cols[3 - i]] == 'X' for i in range(4)):
+        return 'X'
+    if all(board[rows[i] + cols[3 - i]] == 'O' for i in range(4)):
+        return 'O'
+
+    return 'null'
+
+def check_for_draw(this_position: dict) -> bool:
     values = list(this_position.values())
     if all(cell != 'null' for cell in values) and check_for_winner() == 'null':
         print('Draw!')

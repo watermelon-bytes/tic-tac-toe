@@ -1,6 +1,7 @@
 // Here we define the necessary functions and classes used in the game
 
 export class GameTheme {
+
     title: string;
     images_src: string;
     x_src: string;
@@ -15,17 +16,37 @@ export class GameTheme {
 }
 
 /*------------------GLOBAL EXPORTED FUNCTIONS-----------------------*/
+export function createPlayButton(): void {
+    let playButton = document.createElement('button');
+    playButton.setAttribute('id', 'playbutton');
+    playButton.textContent = 'Play';
+    playButton.setAttribute('class', 'btn-primary');
+    playButton.style.position = 'absolute';
+    playButton.style.top = '50%';
+    playButton.style.left = '50%';
+    playButton.style.transform = 'translate(-50%, -50%)';
+    document.body.appendChild(playButton);
+    return;
+}
 
-export function setCellsCoordinates(i: number, n: number): string {
-    const letters = ['a', 'b', 'c', 'd'];
-    const numbers = ['1', '2', '3', '4'];
+
+export function setCellsCoordinates(i: number, n: number = 3): string {
+    if (n <= 2) throw new Error('Invalid grid size: ' + n + '. It must be at least 2.');
+
+    let letters: string[] = [];
+    for (let j = 0; j < n; j++) {
+        letters.push(String.fromCharCode(97 + j)); // 'a' is 97 in ASCII
+    }
+
+    const numbers: string[] = [];
+    for (let j = 1; j <= n; j++) {
+        numbers.push(j.toString());
+    }
   
     const col = Math.floor((i - 1) / n);
     const row = (i - 1) % n;
   
-    if (row >= letters.length || col >= numbers.length) {
-        throw new Error('Invalid index: ' + i);
-    }
+    if (row >= letters.length || col >= numbers.length) throw new Error('Invalid index: ' + i);
   
     const coordinate = letters[row] + numbers[col];
     return coordinate;
@@ -40,6 +61,7 @@ export function stylization(elem_id: string, type: string, element?: HTMLElement
       console.error(`Element with ID ${elem_id} not found`);
   }
 }
+
 /*-------------------------------------------------------------------*/
 
 

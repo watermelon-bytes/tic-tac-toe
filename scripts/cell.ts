@@ -1,22 +1,22 @@
-import { setCellsCoordinates, gothic, classical } from "./utils";
-import { GameTheme } from "./utils";
+import { setCellsCoordinates, gothic, classical } from "./utils.js";
+import { GameTheme } from "./utils.js";
 type PlayerSymbol = 'x' | 'o';
 
 
 
 export class Cell {
-    readonly id: string; // id клетки, e.g., 'a1'
+    readonly coordinate: string; // id клетки, e.g., 'a1'
     private _value: PlayerSymbol | null; // Значение в клетке ('x', 'o' или null)
     element: HTMLDivElement; // Сам DOM-элемент клетки
     private theme: GameTheme; // Тема для отрисовки X/O
 
-    constructor(sequence_number: number, sideOfField: number, theme: GameTheme) {
-        this.id = setCellsCoordinates(sequence_number, sideOfField);
+    constructor(sequence_number: number, sideOfField: number, theme: GameTheme = classical) {
+        this.coordinate = setCellsCoordinates(sequence_number, sideOfField);
         this._value = null;
         this.theme = theme;
 
         this.element = document.createElement('div');
-        this.element.setAttribute('id', this.id);
+        this.element.setAttribute('id', this.coordinate);
         this.element.setAttribute('class', 'cell'); // Класс для базовых стилей
         // Cell сам не устанавливает свойство .classname.title, это относится к его содержимому
     }

@@ -1,40 +1,27 @@
-import * as utils from "./utils";
-import { Cell } from "./cell";
-
-
-/*-----------GLOBAL TYPES-------------------------------------------*/
-type GameTheme = utils.GameTheme;
-type GameSymbol = 'x' | 'o';
-type GameResult = 'x' | 'o' | 'draw' | null;
+import * as utils from "./utils.js";
+import { Cell } from "./cell.js";
 /*-------------------------------------------------------------*/
-
-
 export default class Game {
-    session_id: string | null = null;
-    playerSymbol: GameSymbol | null = null; // Выбранная игроком сторона
-    position: { [coordinate: string]: GameSymbol | null } = {}; // Состояние поля
-    currentTurn: GameSymbol = 'x'; // Чей сейчас ход (начинает 'x')
-    sideOfField: number;
-    cells: Cell[] = []; // Массив объектов Cell
-    gameContainer: HTMLDivElement | null = null; // Контейнер игрового поля
-    gameTheme: GameTheme; // Выбранная тема игры
-
-    // Для логирования ходов (если development_mode)
-    private turnsLogContainer: HTMLDivElement | null = null;
-
-    constructor(initialSide: number = 4, theme: GameTheme = utils.classical) {
+    constructor(initialSide = 4, theme = utils.classical) {
+        this.session_id = null;
+        this.playerSymbol = null; // Выбранная игроком сторона
+        this.position = {}; // Состояние поля
+        this.currentTurn = 'x'; // Чей сейчас ход (начинает 'x')
+        this.cells = []; // пересмотреть. возможно, не нужно.
+        this.gameContainer = null; // Контейнер игрового поля
+        // Для логирования ходов (если development_mode)
+        this.turnsLogContainer = null;
         this.sideOfField = initialSide;
         this.gameTheme = theme;
-        // Инициализация position для новой игры
-        for (let i = 1; i <= this.sideOfField ** 2; i++) {
-            this.position[utils.setCellsCoordinates(i, this.sideOfField)] = null;
+        for (let i = 0; i < this.sideOfField ** 2; i++) {
+            this.cells.push(new Cell(i, this.sideOfField));
+            this.position[this.cells[i].coordinate] = null;
         }
     }
-
     // 1. Создание новой сессии
-    async initializeSession(): Promise<any> {
-        if (!this.playerSymbol) throw new Error("Player symbol must be chosen before initializing a session.");
-
+    async initializeSession() {
+        if (!this.playerSymbol)
+            throw new Error("Player symbol must be chosen before initializing a session.");
         const session_request = await fetch('/new_session', {
             method: 'POST',
             headers: {
@@ -45,21 +32,20 @@ export default class Game {
                 client_side: this.playerSymbol
             })
         });
-
         if (session_request.ok) {
             const result = await session_request.json();
             if (result && typeof result.session_id === 'string') {
                 return result.session_id;
-            } else {
+            }
+            else {
                 throw new Error("Server response missing session_id or invalid format.");
             }
-        } else {
+        }
+        else {
             throw new Error(`Cannot create a session now. Status: ${session_request.status}. Try later.`);
         }
     }
-
-    // 2. Попытка хода
-    async makeMove(cellId: string): Promise<void> {
+    async makeMove(cellId) {
         if (!this.session_id) {
             console.error("Game session not initialized.");
             return;
@@ -72,30 +58,25 @@ export default class Game {
             console.warn("It's not your turn.");
             return;
         }
-
         this.position[cellId] = this.currentTurn; // Обновляем позицию клиента до отправки
-        const playerCell = this.cells.find(cell => cell.id === cellId);
+        const playerCell = this.cells.find(cell => cell.coordinate === cellId);
         if (playerCell) {
             playerCell.fill(this.currentTurn); // Отрисовываем ход клиента
         }
         this.logTurn(cellId, this.currentTurn); // Логируем ход клиента
-
         // Проверяем победителя сразу после хода игрока
         let winner = this.checkForWinner();
         if (winner !== null || this.checkForDraw()) {
             this.endGame(winner);
             return;
         }
-
         this.currentTurn = this.currentTurn === 'x' ? 'o' : 'x'; // Переключаем ход
-
         // Отправка хода на сервер
         try {
             const data_about_our_game = {
                 session_id: this.session_id,
                 move: cellId
             };
-
             const request = await fetch('/game', {
                 headers: {
                     'Content-Type': 'application/json;charset=utf-8'
@@ -103,53 +84,47 @@ export default class Game {
                 method: 'POST',
                 body: JSON.stringify(data_about_our_game)
             });
-
             if (!request.ok) {
                 const errorText = await request.text();
                 throw new Error(`Server error: ${request.status} - ${errorText}`);
             }
-
             const responseData = await request.json();
-
             if (responseData.error) {
                 throw new Error(`Server application error: ${responseData.error}`);
             }
-
             // Если сервер ответил корректно и прислал свой ход
             if (responseData.move && this.isValidMove(responseData.move)) {
                 const serverMoveCellId = responseData.move;
                 this.position[serverMoveCellId] = this.currentTurn; // Обновляем позицию для хода сервера
-                const serverCell = this.cells.find(cell => cell.id === serverMoveCellId);
+                const serverCell = this.cells.find(cell => cell.coordinate === serverMoveCellId);
                 if (serverCell) {
                     serverCell.fill(this.currentTurn); // Отрисовываем ход сервера
                 }
                 this.logTurn(serverMoveCellId, this.currentTurn); // Логируем ход сервера
-
                 winner = this.checkForWinner(); // Проверяем победителя после хода сервера
                 if (winner !== null || this.checkForDraw()) {
                     this.endGame(winner);
                     return;
                 }
                 this.currentTurn = this.currentTurn === 'x' ? 'o' : 'x'; // Переключаем ход обратно на игрока
-            } else if (responseData.move && !this.isValidMove(responseData.move)) {
+            }
+            else if (responseData.move && !this.isValidMove(responseData.move)) {
                 console.error(`Server returned an invalid move: ${responseData.move}`);
                 this.endGame(null); // Завершаем игру, так как сервер вернул некорректный ход
             }
-
-        } catch (error: any) {
+        }
+        catch (error) {
             console.error('Error during game request:', error.message);
             // Можно добавить логику для показа сообщения об ошибке пользователю
             this.endGame(null); // Завершаем игру при ошибке
         }
     }
-
     // 3. Функция на проверку валидности хода
-    isValidMove(move: string): boolean {
+    isValidMove(move) {
         return this.position[move] === null;
     }
-
     // 4. Отрисовка доски
-    drawField(): void {
+    drawField() {
         if (this.gameContainer) {
             this.gameContainer.remove(); // Удаляем старое поле, если есть
         }
@@ -157,39 +132,31 @@ export default class Game {
         this.gameContainer.setAttribute('id', 'game-field');
         this.gameContainer.setAttribute('class', 'game-container');
         document.body.appendChild(this.gameContainer);
-
         const cellSize = Math.min(window.innerWidth, window.innerHeight) / (this.sideOfField + 1) / 1.5;
-
         this.cells = []; // Очищаем массив клеток перед новой отрисовкой
         for (let i = 1; i <= this.sideOfField ** 2; i++) {
             const cell = new Cell(i, this.sideOfField, this.gameTheme);
             const row = Math.ceil(i / this.sideOfField);
             const column = (i - 1) % this.sideOfField + 1;
-
             cell.draw(cellSize, row, column); // Отрисовка стилей клетки
             this.gameContainer.appendChild(cell.element); // Добавление элемента в DOM
-
             // Добавляем обработчик клика на элемент клетки
             cell.element.addEventListener('click', () => {
-                this.makeMove(cell.id).catch(console.error); // Делегируем логику makeMove
+                this.makeMove(cell.coordinate).catch(console.error);
             });
-
             this.cells.push(cell); // Добавляем Cell объект в массив
         }
-
         this.gameContainer.style.position = 'relative';
         this.gameContainer.style.width = `${cellSize * this.sideOfField}px`;
         this.gameContainer.style.height = `${cellSize * this.sideOfField}px`;
         this.gameContainer.style.margin = '0 auto';
     }
-
     // 5. Проверка на победителя
-    checkForWinner(): GameResult {
-        const checkWin = (game_position: { [key: string]: GameSymbol | null }, player_flag: GameSymbol): boolean => {
+    checkForWinner() {
+        const checkWin = (game_position, player_flag) => {
             const playerCells = Object.keys(game_position).filter(key => game_position[key] === player_flag);
             const letters = ['a', 'b', 'c', 'd']; // Предполагаем 4x4 поле
             const numbers = ['1', '2', '3', '4'];
-
             // Горизонтальные линии
             for (let letter of letters) {
                 if (numbers.every(number => playerCells.includes(letter + number))) {
@@ -207,38 +174,34 @@ export default class Game {
             const diag2 = letters.every((l, i) => playerCells.includes(l + numbers[numbers.length - 1 - i]));
             return diag1 || diag2;
         };
-
-        if (checkWin(this.position, 'x')) return 'x';
-        if (checkWin(this.position, 'o')) return 'o';
+        if (checkWin(this.position, 'x'))
+            return 'x';
+        if (checkWin(this.position, 'o'))
+            return 'o';
         return null;
     }
-
     // 6. Проверка на ничью
-    checkForDraw(): boolean {
+    checkForDraw() {
         const values = Object.values(this.position);
         return values.every(cell => cell !== null) && this.checkForWinner() === null;
     }
-
     // 7. Завершение игры
-    endGame(winner: GameResult): void {
+    endGame(winner) {
         this.cells.forEach(cell => {
             // Клонируем элемент и заменяем его, чтобы удалить все обработчики событий
             // Это простой способ гарантировать отсутствие висячих обработчиков.
             const oldElement = cell.element;
-            const newElement = oldElement.cloneNode(true) as HTMLDivElement;
+            const newElement = oldElement.cloneNode(true);
             oldElement.parentNode?.replaceChild(newElement, oldElement);
             cell.element = newElement; // Обновляем ссылку на новый элемент
         });
-
         const message = winner !== null ? `${winner.toUpperCase()} wins!` : 'Draw!';
         console.info(message);
-
         // Показываем кнопку "Play again"
         const playAgainButton = document.createElement('button');
         playAgainButton.innerHTML = 'Play again?';
         playAgainButton.id = 'play_again_btn';
         utils.stylization('play_again_btn', 'prim', playAgainButton); // Использовать стилизацию с элементом
-
         if (this.gameContainer) {
             const gameFieldRect = this.gameContainer.getBoundingClientRect();
             playAgainButton.style.position = 'absolute';
@@ -246,32 +209,26 @@ export default class Game {
             playAgainButton.style.left = `${gameFieldRect.left}px`;
         }
         document.body.appendChild(playAgainButton);
-
         playAgainButton.addEventListener('click', async () => {
             playAgainButton.remove();
             this.gameContainer?.remove();
             await this.startGame().catch(console.error); // Начинаем новую игру
         });
-
         console.info('Game over!');
     }
-
     // 8. Выбор символа игрока (Client Side)
-    private choosePlayerSymbol(): Promise<GameSymbol> {
+    choosePlayerSymbol() {
         return new Promise((resolve) => {
             const container = document.createElement('div');
             container.setAttribute('id', 'container');
             document.body.appendChild(container);
-
             const promptText = 'Play as ';
-
-            ['x', 'o'].forEach((elem: any) => {
+            ['x', 'o'].forEach((elem) => {
                 const button = document.createElement('button');
                 button.setAttribute('id', `${elem}_btn`);
                 button.textContent = promptText + elem.toUpperCase();
                 utils.stylization(button.id, 'sec', button); // Использовать стилизацию с элементом
                 container.appendChild(button);
-
                 button.addEventListener('click', () => {
                     container.remove();
                     this.playerSymbol = elem;
@@ -280,9 +237,8 @@ export default class Game {
             });
         });
     }
-
     // 9. Основная функция для запуска игры
-    async startGame(): Promise<void> {
+    async startGame() {
         // Очищаем предыдущее состояние для новой игры
         this.session_id = null;
         this.playerSymbol = null;
@@ -292,51 +248,36 @@ export default class Game {
             this.position[utils.setCellsCoordinates(i, this.sideOfField)] = null;
         }
         this.cells.forEach(cell => cell.clear()); // Очищаем визуально клетки
-
         document.getElementById('playbutton')?.remove();
         document.getElementById('game-field')?.remove(); // Удаляем поле, если оно есть
         this.turnsLogContainer?.remove(); // Удаляем старый лог
-
         console.log('Waiting for choice...');
         /*if (development_mode) {
             this.createTurnsLog();
         }*/
-
         // 1. Выбор символа
         this.playerSymbol = await this.choosePlayerSymbol();
         console.log('Player choice:', this.playerSymbol);
-
         // 2. Инициализация сессии
         try {
-            await this.initializeSession();
+            this.session_id = await this.initializeSession();
             console.log('Session ID:', this.session_id);
-        } catch (error: any) {
+        }
+        catch (error) {
             console.error('Failed to initialize session:', error.message);
             // Можно предложить пользователю попробовать еще раз или показать ошибку
             document.body.appendChild(document.createElement('p')).textContent = "Failed to start game: " + error.message;
             return; // Прекращаем игру, если сессия не создана
         }
-
-        // 3. Отрисовка поля
         this.drawField();
-
         // 4. Если первый ход за сервером (если игрок выбрал 'o')
         if (this.playerSymbol === 'o') {
             console.log("Server makes the first move...");
-            // Здесь мы ждем ответа сервера без предварительного клиентского хода
-            // Это немного отличается от твоего makeMove, где сначала идет клиентский ход.
-            // Возможно, тебе понадобится отдельный метод для первого хода сервера
-            // Или `makeMove` должен быть адаптирован, чтобы он мог быть вызван без client_move.
-            // Для простоты, пока просто логируем и предполагаем, что сервер начнет
-            // с какого-то своего хода, который будет получен через makeMove
-            // Но в реальности, при client_side: 'server', '/new_session' должен сразу вернуть server_move.
-            // Пока что предполагаем, что сервер делает первый ход после инициализации сессии,
-            // и он будет приходить через makeMove.
+            //...
         }
     }
-
     // Вспомогательные функции для режима разработки
-    private createTurnsLog(): void {
+    createTurnsLog() {
         this.turnsLogContainer = document.createElement('div');
         this.turnsLogContainer.setAttribute('id', 'turns_log');
         this.turnsLogContainer.style.position = 'absolute'; // Исправлена опечатка 'position'
@@ -344,8 +285,7 @@ export default class Game {
         this.turnsLogContainer.style.top = '10px';
         document.body.appendChild(this.turnsLogContainer);
     }
-
-    private logTurn(move: string, symbol: GameSymbol): void {
+    logTurn(move, symbol) {
         if (this.turnsLogContainer) {
             const text = document.createElement('p');
             text.innerHTML = `Position: ${JSON.stringify(this.position)}, Turn: ${symbol}, Move: "${move}"`;
@@ -353,3 +293,4 @@ export default class Game {
         }
     }
 }
+//# sourceMappingURL=game.js.map
