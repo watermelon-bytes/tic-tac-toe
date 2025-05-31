@@ -71,7 +71,7 @@ def initialize_session() -> str:
         #app.logger.info(f"first_move: {right_of_the_first_move}")
         
         app.logger.info(f"Создана пустая доска: {empty_board}")
-        session_id = str(uuid4())
+        session_id = str(uuid4()) + '-' + moves_made
         sessions[session_id] = {"position": empty_board, 'created_at': time(), 'client_side': data['client_side']} # можно ещё 'first_move': right_of_the_first_move 
         app.logger.info(f"Сессия создана: {sessions[session_id]}")
         return jsonify({"session_id": session_id})
