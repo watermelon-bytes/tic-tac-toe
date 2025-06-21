@@ -1,8 +1,6 @@
-from basic_logic import handle
 from uuid import uuid4
-from time import time
+import time
 from flask import Flask, render_template, request, jsonify, send_from_directory
-from utils import *
 
 app = Flask(__name__, template_folder='templates')
 app.config['JSON_AS_ASCII'] = False
@@ -15,7 +13,136 @@ sessions = dict()
 empty_board = {f'{letter}{number}': "null" for letter in list('abcd') for number in range(1, 5)}
 
 
-def is_valid_move(data_json: dict) -> bool:
+@app.route('/', methods=["GET", "POST"])
+def index():
+    return render_template('index.html')
+
+@app.route(f'/scripts/<path:filename>')
+def custom_static(filename):
+    return send_from_directory('scripts', filename)
+
+
+@app.route("/new_session", methods=["POST"])
+def newSession() -> str:
+    session_id: str
+    try:
+        data = request.get_json()
+        app.logger.info(f"Полученные данные: {data}")
+        #right_of_the_first_move = data.get('first_move')
+        #app.logger.info(f"first_move: {right_of_the_first_move}")
+        
+        app.logger.info(f"Создана пустая доска: {empty_board}")
+        session_id = str(uuid4()) + '-0'  # 0 is count of moves made
+        sessions[session_id] = {"position": empty_board, 'last_updated_at': round(time.time()), 'client_side': data["client_side"]}
+        app.logger.info(f"Сессия создана: {sessions[session_id]}")
+        setUpTimeTracking(session_id, 100)
+        return jsonify({"session_id": session_id})
+    except Exception as e:
+        app.logger.info(f"Произошла ошибка: {e}")
+        return "Internal Server Error", 500
+
+
+@app.route("/game", methods=["POST"])
+async def send_position() -> dict:
+    data = request.get_json()
+    app.logger.info(f"Gotten data: {data}")
+    session_id = data["session_id"]
+
+    if isValidMove(data):
+
+        sessions[session_id]["last_updated_at"] = time.time()
+        game_status = checkGameStatus(session_id)
+
+        if game_status == "pending":
+            ai_move = findBestMove(session_id)
+
+            app.logger.info(f"AI's move: {ai_move}")
+            
+            sessions[session_id]["position"][ai_move] = "x" if sessions[session_id]["client_side"] == "o" else "o"
+            sessions[session_id]["last_updated_at"] = time.time()
+            
+            if checkGameStatus(session_id) == "bot's victory":
+                return jsonify({"move": ai_move, "status": "bot's victory"})
+            elif checkGameStatus(session_id) == "draw":
+                return jsonify({"move": ai_move, "status": "draw"})
+            elif checkGameStatus(session_id) == "client's victory":
+                return jsonify({"move": ai_move, "status": "client's victory"})
+            else:
+                return jsonify({"move": ai_move})
+
+        else:
+            return jsonify({"status": game_status})
+    
+    return {"error": "Your JSON is not valid. Try to create new session."}
+
+
+@app.route('/get_sessions')
+def get_sessions():
+    return sessions
+
+
+
+def checkGameStatus(session_id: str) -> str:
+    
+    if session_id not in sessions:
+        raise ValueError(f"Сессия с ID '{session_id}' не найдена.")
+
+    position = sessions[session_id]["position"]
+    client_side = sessions[session_id]["client_side"]
+    bot_side = "o" if client_side == "x" else "x"
+    board_size = 4
+    rows = [[f"{chr(97 + i)}{j + 1}" for j in range(board_size)] for i in range(board_size)]
+    cols = [[f"{chr(97 + j)}{i + 1}" for j in range(board_size)] for i in range(board_size)]
+    diagonals = [
+        [f"{chr(97 + i)}{i + 1}" for i in range(board_size)],
+        [f"{chr(97 + i)}{board_size - i}" for i in range(board_size)]
+    ]
+
+    for line in rows + cols + diagonals:
+        values = [position[cell] for cell in line]
+        if all(v == client_side for v in values):
+            return "client's victory"
+        if all(v == bot_side for v in values):
+            return "bot's victory"
+
+    if all(value != "null" for value in position.values()):
+        return "draw"
+
+    return "pending"
+
+
+def findBestMove(session_id: str) -> str:
+    if session_id not in sessions:
+        raise ValueError(f"Сессия с ID '{session_id}' не найдена.")
+
+    position = sessions[session_id]["position"]
+    current_player = sessions[session_id]["client_side"]
+    opponent = "o" if current_player.lower() == "x" else "x"
+
+    # Проверяем все возможные ходы
+    for cell, value in position.items():
+        if value == "null":  # Если клетка свободна
+            # Сделать временный ход
+            position[cell] = opponent
+
+            # Проверить, выигрывает ли этот ход
+            if checkGameStatus(session_id) == opponent:
+                position[cell] = "null"  # Отменить временный ход
+                return cell  # Вернуть выигрышный ход
+
+            # Отменить временный ход
+            position[cell] = "null"
+
+    # Если нет выигрышного хода, выбираем первый доступный
+    for cell, value in position.items():
+        if value == "null":
+            return cell
+
+    # Если нет доступных ходов (хотя это не должно случиться)
+    raise ValueError("Нет доступных ходов.")
+
+
+def isValidMove(data_json: dict) -> bool:
     session_id, move = data_json["session_id"], data_json["move"];
     if not (session_id in sessions):
         raise ValueError(f"Ошибка: Сессия с ID '{session_id}' не найдена.")
@@ -34,61 +161,14 @@ def is_valid_move(data_json: dict) -> bool:
         return False
     return True
 
-def handle_json(jsonobj: dict):
-    data = jsonobj.get_json()
-    if not ('position' in data and 'turn' in data):
-        return jsonify({"error": "Invalid request: Missing required keys"}), 400
-    return jsonify(handle(data))
 
-@app.route('/', methods=["GET", "POST"])
-def index():
-    return render_template('index.html')
+async def setUpTimeTracking(session_id: str, timeout: float) -> None:
+    if not session_id in sessions:
+        app.logger.error(f"Cannot delete {session_id}, 'cause it does not exist.")
+        return
+    time.sleep(timeout)
+    del sessions[session_id]
 
-@app.route(f'/scripts/<path:filename>')
-def custom_static(filename):
-    return send_from_directory('scripts', filename)
-
-@app.route("/game", methods=["POST"])
-async def send_position() -> dict:
-    data = request.get_json()
-    app.logger.info(f"Gotten data: {data}")
-    session_id = data["session_id"]
-    if is_valid_move(data):
-        sessions[session_id]["move"] = sessions[session_id]["client_side"]
-        sessions[session_id]["last_updated_at"] = time()
-
-        
-    else:
-        return {"error": "Your JSON is not valid. Try to create new session."}
-
-@app.route("/new_session", methods=["POST"])
-def initialize_session() -> str:
-    app.logger.info("Запрос /new_session получен")
-    try:
-        data = request.get_json()
-        app.logger.info(f"Полученные данные: {data}")
-        #right_of_the_first_move = data.get('first_move')
-        #app.logger.info(f"first_move: {right_of_the_first_move}")
-        
-        app.logger.info(f"Создана пустая доска: {empty_board}")
-        session_id = str(uuid4()) + '-' + moves_made
-        sessions[session_id] = {"position": empty_board, 'created_at': time(), 'client_side': data['client_side']} # можно ещё 'first_move': right_of_the_first_move 
-        app.logger.info(f"Сессия создана: {sessions[session_id]}")
-        return jsonify({"session_id": session_id})
-    except Exception as e:
-        app.logger.info(f"Произошла ошибка: {e}")
-        return "Internal Server Error", 500
-
-@app.route('/get_sessions')
-def get_sessions():
-    return sessions
-
-
-def deleteSession(id: str):
-    try:
-        del sessions[id]
-    except KeyError:
-        app.logger.error(f"Cannot delete {id}, 'cause it does not exist.")
     
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=3000, debug=True, use_reloader=True, threaded=True)

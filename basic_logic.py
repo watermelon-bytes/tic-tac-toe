@@ -2,7 +2,7 @@
 import json
 import math
 import random
-from utils import every_in_list
+from utils import everyInList
 
 #def directToMLLogic(request):
     # Прямой вызов функции winning_turn для обработки запроса
@@ -67,7 +67,7 @@ def valid_moves(position: dict) -> list:
 
 
 
-def check_for_winner(board: dict) -> 'X' | 'O' | 'pending' | 'draw':
+def check_for_winner(board: dict) -> str:
     rows = ['a', 'b', 'c', 'd']
     cols = ['1', '2', '3', '4']
 

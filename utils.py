@@ -1,6 +1,4 @@
 from json import loads as toDict
-from time import sleep
-from server import deleteSession
 
 def opponent(player: str) -> str:
     if player == 'client':
@@ -40,6 +38,3 @@ def everyInList(arr: list, value: callable) -> bool:
             return False
     return True
 
-async def setUpTimeTracking(session_id: str, timeout: float) -> None:
-    sleep(timeout)
-    deleteSession(session_id)
