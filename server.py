@@ -10,7 +10,8 @@ app.config['CORS_SUPPORTS_CREDENTIALS'] = True
 
 
 sessions = dict()
-empty_board = {f'{letter}{number}': "null" for letter in list('abcd') for number in range(1, 5)}
+def empty_board():
+    return {f'{letter}{number}': "null" for letter in list('abcd') for number in range(1, 5)}
 
 
 @app.route('/', methods=["GET", "POST"])
@@ -23,7 +24,7 @@ def custom_static(filename):
 
 
 @app.route("/new_session", methods=["POST"])
-def newSession() -> str:
+def newSession():
     session_id: str
     try:
         data = request.get_json()
@@ -31,11 +32,10 @@ def newSession() -> str:
         #right_of_the_first_move = data.get('first_move')
         #app.logger.info(f"first_move: {right_of_the_first_move}")
         
-        app.logger.info(f"Создана пустая доска: {empty_board}")
         session_id = str(uuid4()) + '-0'  # 0 is count of moves made
-        sessions[session_id] = {"position": empty_board, 'last_updated_at': round(time.time()), 'client_side': data["client_side"]}
+        sessions[session_id] = {"position": empty_board(), 'last_updated_at': round(time.time()), 'client_side': data["client_side"]}
         app.logger.info(f"Сессия создана: {sessions[session_id]}")
-        setUpTimeTracking(session_id, 100)
+        #await setUpTimeTracking(session_id, 100)
         return jsonify({"session_id": session_id})
     except Exception as e:
         app.logger.info(f"Произошла ошибка: {e}")
@@ -43,16 +43,16 @@ def newSession() -> str:
 
 
 @app.route("/game", methods=["POST"])
-async def send_position() -> dict:
+async def sendPosition():
     data = request.get_json()
     app.logger.info(f"Gotten data: {data}")
     session_id = data["session_id"]
+    sessions[session_id]['position'][data["move"]] = sessions[session_id]["client_side"]
 
     if isValidMove(data):
-
         sessions[session_id]["last_updated_at"] = time.time()
         game_status = checkGameStatus(session_id)
-
+        app.logger.info(f"Position before server's move: {sessions[session_id]['position']}")
         if game_status == "pending":
             ai_move = findBestMove(session_id)
 
@@ -62,15 +62,20 @@ async def send_position() -> dict:
             sessions[session_id]["last_updated_at"] = time.time()
             
             if checkGameStatus(session_id) == "bot's victory":
+                deleteSession(session_id)
                 return jsonify({"move": ai_move, "status": "bot's victory"})
             elif checkGameStatus(session_id) == "draw":
+                app.logger.info(f"Game {session_id} status: draw")
+                deleteSession(session_id)
                 return jsonify({"move": ai_move, "status": "draw"})
             elif checkGameStatus(session_id) == "client's victory":
-                return jsonify({"move": ai_move, "status": "client's victory"})
+                deleteSession(session_id)
+                return jsonify({"status": "client's victory"})
             else:
                 return jsonify({"move": ai_move})
-
+        
         else:
+            app.logger.info(f"Game status: {game_status}")
             return jsonify({"status": game_status})
     
     return {"error": "Your JSON is not valid. Try to create new session."}
@@ -80,12 +85,17 @@ async def send_position() -> dict:
 def get_sessions():
     return sessions
 
-
+def deleteSession(session_id: str) -> None:
+    if session_id in sessions:
+        del sessions[session_id]
+        app.logger.info(f"Session (ID: '{session_id}') was successfully removed.")
+    else:
+        app.logger.error(f"Cannot remove '{session_id}', because this is not an existing session.")
 
 def checkGameStatus(session_id: str) -> str:
     
     if session_id not in sessions:
-        raise ValueError(f"Сессия с ID '{session_id}' не найдена.")
+        raise ValueError(f"Cannot search '{session_id}'.")
 
     position = sessions[session_id]["position"]
     client_side = sessions[session_id]["client_side"]
@@ -133,10 +143,23 @@ def findBestMove(session_id: str) -> str:
             # Отменить временный ход
             position[cell] = "null"
 
+    for cell, value in position.items(): # Ищем блокирующий ход
+        if value == "null":  # Если клетка свободна 
+            # Сделать временный ход
+            position[cell] = current_player
+
+            # Проверить, выигрывает ли этот ход
+            if checkGameStatus(session_id) == current_player:
+                position[cell] = "null"  # Отменить временный ход
+                return cell  # Вернуть блокирующий ход
+
+            # Отменить временный ход
+            position[cell] = "null"
+
     # Если нет выигрышного хода, выбираем первый доступный
     for cell, value in position.items():
         if value == "null":
-            return cell
+            return cell  # Вернуть первый доступный ход
 
     # Если нет доступных ходов (хотя это не должно случиться)
     raise ValueError("Нет доступных ходов.")
