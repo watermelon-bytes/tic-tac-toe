@@ -62,10 +62,6 @@ Tic-Tac-Toe is a browser-based implementation of the classic game, enhanced with
 
 Contributions are welcome! Feel free to submit issues or pull requests to improve the project 💡.
 
-## License 📜
-
-This project is licensed under the MIT License. See the `LICENSE` file for details.
-
 ## Acknowledgments 🙏
 
 Special thanks to the developers and contributors who made this project possible 💖.

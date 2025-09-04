@@ -1,4 +1,4 @@
-from json import loads as toDict
+from json import loads
 
 def opponent(player: str) -> str:
     if player == 'client':
@@ -7,7 +7,7 @@ def opponent(player: str) -> str:
         return 'client'
 
 def convertPositionForML(position: str, turn: int, choice: str) -> tuple:
-    position = toDict(position.replace("'", '"'))
+    position = loads(position.replace("'", '"'))
     letters = ['a', 'b', 'c', 'd']
     numbers = ['1', '2', '3', '4']
     features = [[]]
